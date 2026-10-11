@@ -97,6 +97,8 @@ class VoiceController {
   setLanguage(langName) {
     const map = {
       "english": "en-US",
+      "malayalam": "ml-IN",
+      "മലയാളം": "ml-IN",
       "hindi": "hi-IN",
       "hinglish": "hi-IN",
       "spanish": "es-ES",

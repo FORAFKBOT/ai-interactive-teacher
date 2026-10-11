@@ -72,19 +72,27 @@ function switchView(viewName) {
   appState.currentView = viewName;
   const liveStage = document.getElementById("view-live-stage");
   const studyDesk = document.getElementById("view-study-desk");
+  const sidebar = document.getElementById("sidebar-left");
   const tabLive = document.getElementById("tab-live-stage");
   const tabDesk = document.getElementById("tab-study-desk");
+  const tabSyllabus = document.getElementById("tab-syllabus");
+
+  tabLive.classList.toggle("active", viewName === "live");
+  tabDesk.classList.toggle("active", viewName === "desk");
+  if (tabSyllabus) tabSyllabus.classList.toggle("active", viewName === "syllabus");
 
   if (viewName === "live") {
     liveStage.style.display = "flex";
     studyDesk.style.display = "none";
-    tabLive.classList.add("active");
-    tabDesk.classList.remove("active");
-  } else {
+    if (sidebar) sidebar.classList.remove("mobile-active");
+  } else if (viewName === "desk") {
     liveStage.style.display = "none";
     studyDesk.style.display = "flex";
-    tabLive.classList.remove("active");
-    tabDesk.classList.add("active");
+    if (sidebar) sidebar.classList.remove("mobile-active");
+  } else if (viewName === "syllabus") {
+    liveStage.style.display = "none";
+    studyDesk.style.display = "none";
+    if (sidebar) sidebar.classList.add("mobile-active");
   }
 }
 
@@ -135,14 +143,14 @@ function toggleMic() {
   }
 }
 
-// Upload Handling
+// Multi-file Upload Handling
 async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  const files = Array.from(event.target.files);
+  if (!files || files.length === 0) return;
 
   const uploadBtn = event.target.parentElement.querySelector("button");
   const originalText = uploadBtn.innerHTML;
-  uploadBtn.innerHTML = "<span>Parsing document & building curriculum...</span>";
+  uploadBtn.innerHTML = `<span>Parsing ${files.length} file${files.length > 1 ? 's' : ''} & building curriculum...</span>`;
   uploadBtn.disabled = true;
 
   try {
@@ -150,9 +158,14 @@ async function handleFileUpload(event) {
     const importance = parseInt(document.getElementById("importance-range").value);
     const language = document.getElementById("language-select").value;
 
-    const res = await API.uploadFile(file, { urgency, importance, language });
+    const res = await API.uploadFiles(files, { urgency, importance, language });
     renderSessionState(res.session);
     
+    // If mobile user uploaded from syllabus tab, switch to Live or Desk
+    if (window.innerWidth <= 900 && appState.currentView === "syllabus") {
+      switchView("live");
+    }
+
     // Add first teacher greeting to chat & live preview
     addChatMessage("ai", res.first_message);
     updateLiveExchangePreview(res.first_message);
@@ -160,7 +173,7 @@ async function handleFileUpload(event) {
     // Speak greeting
     speakTeacherResponse(res.first_message);
   } catch (err) {
-    alert("Error uploading file: " + err.message);
+    alert("Error uploading file(s): " + err.message);
   } finally {
     uploadBtn.innerHTML = originalText;
     uploadBtn.disabled = false;
@@ -251,6 +264,22 @@ function renderSessionState(session) {
   if (docBadge) {
     docBadge.innerText = session.document_title || "No file loaded";
     docBadge.title = session.document_title || "";
+  }
+
+  // Render Source Files Chips if multiple files
+  const filesContainer = document.getElementById("loaded-files-chips");
+  if (filesContainer) {
+    if (session.source_files && session.source_files.length > 0) {
+      filesContainer.style.display = "flex";
+      filesContainer.innerHTML = session.source_files.map(name => `
+        <span class="file-chip" title="${escapeHtml(name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="file-chip-name">${escapeHtml(name)}</span>
+        </span>
+      `).join("");
+    } else {
+      filesContainer.style.display = "none";
+    }
   }
 
   // Mastery Bar & Text

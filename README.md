@@ -33,9 +33,10 @@ This instantly generates a secure, free public HTTPS link (e.g. `https://sage-xy
 
 ## 🌟 Core Features
 
-1. **Document Upload & Curriculum Grounding**
-   - Upload **PDFs, Word documents (.docx), Markdown, or plain text (.txt)**, or paste notes directly.
-   - Automatically extracts core concepts, definitions, and learning checkpoints into an immutable knowledge anchor.
+1. **Multi-File Upload & Universal Format Support**
+   - Upload **multiple files simultaneously** (e.g., lecture slides + textbook chapter + notes).
+   - Supports **PDFs (.pdf), Word (.docx, .doc), PowerPoint slides (.pptx), Markdown (.md), Plain Text (.txt), Rich Text (.rtf), Web pages (.html), Structured data (.csv, .json), and Source Code (.py, .js, .java, etc.)**.
+   - Combines multiple files into a unified knowledge base with interactive file chips.
 
 2. **NotebookLM-Style Live Interaction Mode**
    - Immersive live audio stage with a pulsating voice orb and real-time audio waveform.
@@ -43,8 +44,12 @@ This instantly generates a secure, free public HTTPS link (e.g. `https://sage-xy
    - One-click **Interrupt** button to stop the teacher and interject anytime.
 
 3. **Multi-Lingual Teaching in Your Preferred Language**
-   - Select from **English, Hindi (हिंदी), Hinglish, Spanish (Español), French, German, Mandarin, Japanese, Arabic, Bengali, Russian**, and more.
-   - The teacher explains and poses Socratic questions natively in your chosen language while preserving key technical terms.
+   - Full support for **Malayalam (മലയാളം), English, Hindi (हिंदी), Hinglish, Tamil (தமிழ்), Telugu (తెలుగు), Bengali (বাংলা), Spanish (Español), French, German, Mandarin, Japanese, Arabic, Russian**, and more.
+   - Speaks natively in Malayalam and poses Socratic questions directly in Malayalam script.
+
+4. **Mobile-First & Touch-Optimized UI**
+   - Responsive design with dedicated mobile navigation (`Live Stage`, `Study Desk`, `Curriculum & Dials`).
+   - Sized for mobile viewports, touch targets, and iOS Safari / Android Chrome voice APIs.
 
 4. **Dynamic Pedagogy: Urgency & Importance Dials**
    - **Urgency (1 to 5)**:

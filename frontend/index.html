@@ -46,6 +46,10 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
             <span>Study Desk & Notes</span>
           </button>
+          <button id="tab-syllabus" class="mode-tab mobile-only" onclick="switchView('syllabus')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+            <span>Curriculum & Dials</span>
+          </button>
         </div>
       </div>
 
@@ -53,7 +57,7 @@
         <!-- Connect Mobile Device Pill -->
         <button class="btn btn-outline btn-sm" onclick="openDeviceModal()" title="Connect on Phone, Tablet or Any Device">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
-          <span>Connect Device</span>
+          <span class="btn-text-responsive">Connect Device</span>
         </button>
 
         <!-- Mastery Counter -->
@@ -76,7 +80,7 @@
     <main class="main-content">
 
       <!-- Left Sidebar: Pedagogical Control & Core Objectives Anchor -->
-      <aside class="sidebar-left">
+      <aside id="sidebar-left" class="sidebar-left">
         <!-- Upload & Source Widget -->
         <div class="sidebar-card">
           <div class="card-header">
@@ -84,12 +88,15 @@
             <span id="doc-title-badge" class="badge">No file loaded</span>
           </div>
 
+          <div id="loaded-files-chips" class="loaded-files-container" style="display: none;"></div>
+
           <div id="upload-actions" class="upload-zone-compact">
-            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display: none;" onchange="handleFileUpload(event)">
+            <input type="file" id="file-input" multiple accept=".pdf,.docx,.doc,.pptx,.txt,.md,.markdown,.rst,.rtf,.html,.htm,.csv,.tsv,.json,.py,.js" style="display: none;" onchange="handleFileUpload(event)">
             <button class="btn btn-outline btn-sm full-width" onclick="document.getElementById('file-input').click()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-              Upload PDF / DOCX / TXT
+              Upload Files (PDF, Word, PPT, Notes)
             </button>
+            <div class="multi-upload-hint">Tip: Select multiple files at once</div>
             <div class="sample-pill-row">
               <span class="sample-label">Or test drive:</span>
               <button class="chip-btn" onclick="loadSample('quantum')">Quantum Computing</button>
@@ -166,8 +173,12 @@
             </div>
             <select id="language-select" class="custom-select" onchange="onLanguageChange(this.value)">
               <option value="English" selected>English</option>
+              <option value="Malayalam (മലയാളം)">Malayalam (മലയാളം)</option>
               <option value="Hindi (हिंदी)">Hindi (हिंदी)</option>
               <option value="Hinglish (Hindi + English mix)">Hinglish (Conversational)</option>
+              <option value="Tamil (தமிழ்)">Tamil (தமிழ்)</option>
+              <option value="Telugu (తెలుగు)">Telugu (తెలుగు)</option>
+              <option value="Bengali (বাংলা)">Bengali (বাংলা)</option>
               <option value="Spanish (Español)">Spanish (Español)</option>
               <option value="French (Français)">French (Français)</option>
               <option value="German (Deutsch)">German (Deutsch)</option>
@@ -175,9 +186,6 @@
               <option value="Japanese (日本語)">Japanese (日本語)</option>
               <option value="Arabic (العربية)">Arabic (العربية)</option>
               <option value="Portuguese (Português)">Portuguese (Português)</option>
-              <option value="Bengali (বাংলা)">Bengali (বাংলা)</option>
-              <option value="Telugu (తెలుగు)">Telugu (తెలుగు)</option>
-              <option value="Tamil (தமிழ்)">Tamil (தமிழ்)</option>
               <option value="Russian (Русский)">Russian (Русский)</option>
             </select>
           </div>

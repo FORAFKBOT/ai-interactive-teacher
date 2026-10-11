@@ -277,7 +277,9 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
                     status_change = "mastered"
                 
                 # Feedback in preferred language
-                if "hindi" in lang or "hinglish" in lang:
+                if "malayalam" in lang or "മലയാളം" in lang:
+                    evaluation_header = "വളരെ മികച്ച ഉത്തരം! നിങ്ങൾ ആശയം കൃത്യമായി മനസ്സിലാക്കിയിരിക്കുന്നു. ✨\n\n"
+                elif "hindi" in lang or "hinglish" in lang:
                     evaluation_header = "Shaandar! Aapka concept ekdum sahi pakad mein aa raha hai. ✨\n\n"
                 elif "spanish" in lang:
                     evaluation_header = "¡Excelente deducción! Vas por el camino correcto. 🎯\n\n"
@@ -293,7 +295,9 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
             else:
                 score_delta = 10
                 session.current_streak = 0
-                if "hindi" in lang or "hinglish" in lang:
+                if "malayalam" in lang or "മലയാളം" in lang:
+                    evaluation_header = "നല്ലൊരു ശ്രമം, പക്ഷേ പരീക്ഷയ്ക്ക് മാർക്ക് നഷ്ടപ്പെടാതിരിക്കാൻ നമുക്ക് ഇത് കൂടുതൽ വ്യക്തമാക്കാം:\n\n"
+                elif "hindi" in lang or "hinglish" in lang:
                     evaluation_header = "Achha koshish, lekin hume iske core point pe dhyan dena hoga. Dekhiye:\n\n"
                 elif "spanish" in lang:
                     evaluation_header = "Buen intento, pero afinemos el concepto clave:\n\n"
@@ -311,7 +315,14 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
 
         if urgency >= 4:
             # High-Yield Cram Mode
-            if "hindi" in lang or "hinglish" in lang:
+            if "malayalam" in lang or "മലയാളം" in lang:
+                body = (
+                    f"⚡ **ഹൈ-യീൽഡ് ക്രാം ഫോക്കസ് ({title})**:\n"
+                    f"- **പ്രധാന പോയിന്റ്**: {fact_highlight}\n"
+                    f"- **പരീക്ഷാ പോയിന്റ്**: {summary[:160]}.\n"
+                )
+                question = f"❓ **ക്വിക്ക് ടെസ്റ്റ്**: '{title}'ന്റെ പ്രധാന ധർമ്മം എന്താണെന്ന് 1 വാക്യത്തിൽ പറയാമോ?"
+            elif "hindi" in lang or "hinglish" in lang:
                 body = (
                     f"⚡ **High-Yield Cram Mode ({title})**:\n"
                     f"- **Main Point**: {fact_highlight}\n"
@@ -338,7 +349,16 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
 
         elif urgency == 1:
             # Deep Dive Mode
-            if "hindi" in lang or "hinglish" in lang:
+            if "malayalam" in lang or "മലയാളം" in lang:
+                body = (
+                    f"🌱 **ആഴത്തിലുള്ള പഠനം: {title}**\n\n"
+                    f"ഈ ആശയത്തിന്റെ അടിസ്ഥാന തത്വം നമുക്ക് പരിശോധിക്കാം:\n\n"
+                    f"> \"{summary}\"\n\n"
+                    f"പ്രധാന കാര്യം: {fact_highlight}. "
+                    f"ഇത് യഥാർത്ഥ ലോകത്ത് എങ്ങനെ പ്രവർത്തിക്കുന്നു എന്ന് ചിന്തിക്കുക."
+                )
+                question = f"🤔 **ചിന്താ ചോദ്യം**: '{title}' എന്ന തത്വം ഇല്ലായിരുന്നുവെങ്കിൽ ഈ സിസ്റ്റത്തിൽ എന്ത് സംഭവിക്കുമായിരുന്നു?"
+            elif "hindi" in lang or "hinglish" in lang:
                 body = (
                     f"🌱 **Gahan Chintan & Exploration: {title}**\n\n"
                     f"Is concept ki gehrai ko samajhte hain. Sochiye aisa kyun design kiya gaya:\n\n"
@@ -367,7 +387,14 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
 
         else:
             # Balanced Pedagogical Mode
-            if "hindi" in lang or "hinglish" in lang:
+            if "malayalam" in lang or "മലയാളം" in lang:
+                body = (
+                    f"📘 **പാഠഭാഗം: {title}**\n\n"
+                    f"{summary}\n\n"
+                    f"🔑 **പ്രധാന ആശയം**: {fact_highlight}"
+                )
+                question = f"❓ **ധാരണ പരിശോധന**: നിങ്ങളുടെ സ്വന്തം വാക്കുകളിൽ '{title}'ന്റെ പ്രവർത്തനം എങ്ങനെ വിശദീകരിക്കും?"
+            elif "hindi" in lang or "hinglish" in lang:
                 body = (
                     f"📘 **Topic: {title}**\n\n"
                     f"{summary}\n\n"

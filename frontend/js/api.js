@@ -7,9 +7,13 @@ const API_BASE = "";
 const API = {
   sessionId: localStorage.getItem("sage_session_id") || "session_" + Math.random().toString(36).substring(2, 9),
 
-  async uploadFile(file, options = {}) {
+  async uploadFiles(files, options = {}) {
     const formData = new FormData();
-    formData.append("file", file);
+    // Accept either array of files or single file
+    const fileList = Array.isArray(files) ? files : [files];
+    for (const f of fileList) {
+      formData.append("files", f);
+    }
     formData.append("session_id", this.sessionId);
     formData.append("language", options.language || "English");
     formData.append("urgency", options.urgency || 3);

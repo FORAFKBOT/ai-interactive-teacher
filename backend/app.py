@@ -63,42 +63,61 @@ class PastePayload(BaseModel):
 
 
 @app.post("/api/upload")
-async def upload_document(
-    file: UploadFile = File(...),
+async def upload_documents(
+    files: List[UploadFile] = File(...),
     session_id: Optional[str] = Form(None),
     language: Optional[str] = Form("English"),
     urgency: Optional[int] = Form(3),
     importance: Optional[int] = Form(3)
 ):
-    """Upload a PDF, DOCX, TXT, or MD file and structure it into a curriculum."""
+    """Upload one or more files (PDF, DOCX, DOC, PPTX, TXT, MD, etc.) and combine into a curriculum."""
     session = get_or_create_session(session_id)
     session.set_pedagogical_params(language=language, urgency=urgency, importance=importance)
     
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        extracted_text = DocumentParser.extract_text_from_file(file_path)
-        if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="The uploaded file appears to be empty or unreadable.")
-        
-        curriculum = DocumentParser.analyze_curriculum(extracted_text, title=file.filename)
-        session.load_curriculum(curriculum)
-        
-        # Initial greeting from teacher
-        init_response = await teacher_engine.generate_response(
-            session,
-            user_input=f"Hello Teacher! I have uploaded '{file.filename}'. Please introduce the core syllabus and kick off our first lesson."
-        )
-        
-        return {
-            "status": "success",
-            "session": session.to_dict(),
-            "first_message": init_response["response_text"]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")
+    if not files:
+        raise HTTPException(status_code=400, detail="No files were provided.")
+
+    combined_texts = []
+    processed_filenames = []
+
+    for file in files:
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        try:
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            extracted_text = DocumentParser.extract_text_from_file(file_path)
+            if extracted_text.strip():
+                combined_texts.append(f"=== [Document: {file.filename}] ===\n{extracted_text}")
+                processed_filenames.append(file.filename)
+        except Exception as e:
+            print(f"Warning: could not process {file.filename}: {e}")
+
+    if not combined_texts:
+        raise HTTPException(status_code=400, detail="None of the uploaded files contained readable text.")
+
+    unified_content = "\n\n".join(combined_texts)
+    doc_title = (
+        processed_filenames[0] if len(processed_filenames) == 1
+        else f"{len(processed_filenames)} Documents ({', '.join(processed_filenames[:2])}{'...' if len(processed_filenames) > 2 else ''})"
+    )
+
+    curriculum = DocumentParser.analyze_curriculum(unified_content, title=doc_title, source_files=processed_filenames)
+    session.load_curriculum(curriculum)
+    
+    # Initial greeting from teacher
+    doc_intro = f"'{processed_filenames[0]}'" if len(processed_filenames) == 1 else f"{len(processed_filenames)} uploaded documents ({', '.join(processed_filenames)})"
+    init_response = await teacher_engine.generate_response(
+        session,
+        user_input=f"Hello Teacher! I have uploaded {doc_intro}. Please introduce the core syllabus and kick off our first lesson."
+    )
+    
+    return {
+        "status": "success",
+        "session": session.to_dict(),
+        "first_message": init_response["response_text"],
+        "files_count": len(processed_filenames)
+    }
 
 
 @app.post("/api/paste")

@@ -89,6 +89,7 @@ class LearningSession:
         return {
             "session_id": self.session_id,
             "document_title": self.document_data.get("title", "No Document") if self.document_data else None,
+            "source_files": self.document_data.get("source_files", []) if self.document_data else [],
             "preview": self.document_data.get("preview", "") if self.document_data else None,
             "language": self.language,
             "urgency": self.urgency,
