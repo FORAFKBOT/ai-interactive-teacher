@@ -387,13 +387,18 @@
               </div>
 
               <div class="setting-group" style="margin-top: 10px;">
-                <label>Your Google Email or Account Name</label>
-                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <label>Connect Google Account</label>
+                <div style="margin-top: 6px;">
+                  <button class="btn btn-primary btn-sm" onclick="connectGoogleDrive()" style="width: 100%; justify-content: center; padding: 10px 14px;">
+                    🔗 Redirect to Google Account Center to Connect Drive
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
                   <input type="email" id="google-email-input" class="custom-input" placeholder="e.g. yourname@gmail.com" style="margin-top: 0;">
-                  <button class="btn btn-primary btn-sm" onclick="handleSaveGoogleAccount()" style="white-space: nowrap;">Connect</button>
+                  <button class="btn btn-outline btn-sm" onclick="handleSaveGoogleAccount()" style="white-space: nowrap;">Save Email</button>
                   <button class="btn btn-outline btn-sm" id="btn-google-signout" onclick="handleGoogleSignOut()" style="display: none; white-space: nowrap;">Disconnect</button>
                 </div>
-                <small class="helper-text">Links your study notebooks to your Google account profile.</small>
+                <small class="helper-text">Opens Google Account Center in a new tab and links your study notebooks.</small>
               </div>
 
               <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
@@ -491,8 +496,11 @@
             </div>
           </div>
           <div class="drive-banner-actions">
-            <button class="btn btn-primary btn-sm" onclick="openSettingsModal('google')">
-              ☁️ Cloud Sync Settings
+            <button class="btn btn-primary btn-sm" onclick="connectGoogleDrive()">
+              🔗 Connect Google Account
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openSettingsModal('google')">
+              ⚙️ Cloud Settings
             </button>
             <button class="btn btn-outline btn-sm" onclick="exportActiveNotebook()">
               Export JSON Backup

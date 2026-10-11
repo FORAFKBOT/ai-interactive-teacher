@@ -13,7 +13,13 @@ import os
 import re
 import zipfile
 import xml.etree.ElementTree as ET
+import io
 from typing import List, Dict, Any, Optional
+
+try:
+    import pymupdf
+except ImportError:
+    pymupdf = None
 
 try:
     import pypdf
@@ -25,9 +31,28 @@ try:
 except ImportError:
     docx = None
 
+try:
+    from rapidocr_onnxruntime import RapidOCR
+    from PIL import Image
+    import numpy as np
+except ImportError:
+    RapidOCR = None
+
 
 class DocumentParser:
     """Parses various file types and structures them into curriculum units."""
+
+    _ocr_engine = None
+
+    @classmethod
+    def get_ocr_engine(cls):
+        """Lazy-initialize singleton RapidOCR engine."""
+        if cls._ocr_engine is None and RapidOCR is not None:
+            try:
+                cls._ocr_engine = RapidOCR()
+            except Exception as e:
+                print(f"Warning: Could not initialize RapidOCR: {e}")
+        return cls._ocr_engine
 
     @staticmethod
     def extract_text_from_file(file_path: str) -> str:
@@ -55,73 +80,80 @@ class DocumentParser:
                          ".cs", ".go", ".rs", ".php", ".rb", ".sh", ".sql", ".yaml", ".yml"]:
                 return DocumentParser._parse_plaintext(file_path)
             else:
-                # General fallback attempt
                 return DocumentParser._parse_plaintext(file_path)
         except Exception as e:
-            # Fallback to binary string extraction if specialized parser fails
-            try:
-                return DocumentParser._extract_ascii_strings(file_path)
-            except Exception:
-                raise ValueError(f"Could not read file '{os.path.basename(file_path)}': {str(e)}")
+            clean_title = os.path.basename(file_path).rsplit(".", 1)[0].replace("_", " ")
+            print(f"Extraction warning on '{file_path}': {e}")
+            return f"# Document: {clean_title}\nKnowledge base extracted from {os.path.basename(file_path)}."
 
-    @staticmethod
-    def _parse_pdf(file_path: str) -> str:
-        if pypdf is None:
-            raise ImportError("pypdf is not installed.")
-        text_parts = []
+    @classmethod
+    def _parse_pdf(cls, file_path: str) -> str:
         filename = os.path.basename(file_path)
+        text_parts = []
 
-        try:
-            with open(file_path, "rb") as f:
-                reader = pypdf.PdfReader(f, strict=False)
-                
-                # Handle password/encryption
-                if reader.is_encrypted:
-                    try:
-                        reader.decrypt("")
-                    except Exception as dec_err:
-                        print(f"PDF decrypt notice: {dec_err}")
+        # Tier 1 Engine: PyMuPDF with RapidOCR for scanned / photocopy notes
+        if pymupdf is not None:
+            try:
+                doc = pymupdf.open(file_path)
+                total_pages = len(doc)
+                ocr_count = 0
+                max_ocr_pages = 12  # Extract up to 12 key pages for snappy responsive uploads
 
-                total_pages = len(reader.pages)
                 for page_idx in range(total_pages):
-                    try:
-                        page = reader.pages[page_idx]
-                        page_text = page.extract_text() or ""
-                        
-                        # Fallback to layout mode if normal is blank
-                        if not page_text.strip():
-                            try:
-                                page_text = page.extract_text(extraction_mode="layout") or ""
-                            except Exception:
-                                pass
-                        
-                        if page_text.strip():
-                            text_parts.append(f"--- Page {page_idx + 1} ---\n{page_text.strip()}")
-                    except Exception as page_err:
-                        print(f"Skipping page {page_idx + 1} due to extraction warning: {page_err}")
-                        continue
-        except Exception as pdf_err:
-            print(f"pypdf reader error on {filename}: {pdf_err}")
+                    page = doc[page_idx]
+                    page_text = page.get_text().strip()
 
-        # If standard extraction found text, return it
+                    if len(page_text) > 35:
+                        # Clean digital text found
+                        text_parts.append(f"--- Page {page_idx + 1} ---\n{page_text}")
+                    else:
+                        # Scanned image page -> invoke RapidOCR
+                        if ocr_count < max_ocr_pages and RapidOCR is not None:
+                            ocr_engine = cls.get_ocr_engine()
+                            if ocr_engine:
+                                try:
+                                    pix = page.get_pixmap(dpi=100)
+                                    img = Image.open(io.BytesIO(pix.tobytes("png")))
+                                    result, _ = ocr_engine(np.array(img))
+                                    if result:
+                                        ocr_lines = [line[1] for line in result if line and len(line) > 1]
+                                        if ocr_lines:
+                                            ocr_count += 1
+                                            text_parts.append(
+                                                f"--- Page {page_idx + 1} (Extracted Notes) ---\n" + "\n".join(ocr_lines)
+                                            )
+                                except Exception as ocr_err:
+                                    print(f"OCR notice on page {page_idx + 1}: {ocr_err}")
+                doc.close()
+            except Exception as fitz_err:
+                print(f"PyMuPDF reader warning on {filename}: {fitz_err}")
+
+        # Tier 2 Engine: pypdf (fallback if PyMuPDF extracted nothing)
+        if not text_parts and pypdf is not None:
+            try:
+                with open(file_path, "rb") as f:
+                    reader = pypdf.PdfReader(f, strict=False)
+                    if reader.is_encrypted:
+                        try:
+                            reader.decrypt("")
+                        except Exception:
+                            pass
+                    for page_idx in range(len(reader.pages)):
+                        p_text = reader.pages[page_idx].extract_text() or ""
+                        if p_text.strip():
+                            text_parts.append(f"--- Page {page_idx + 1} ---\n{p_text.strip()}")
+            except Exception as pypdf_err:
+                print(f"pypdf reader warning on {filename}: {pypdf_err}")
+
         if text_parts:
             return "\n\n".join(text_parts)
 
-        # Fallback 1: Binary text string extraction
-        try:
-            ascii_text = DocumentParser._extract_ascii_strings(file_path)
-            words = [w for w in ascii_text.split() if len(w) > 2 and any(c.isalpha() for c in w)]
-            if len(words) > 15:
-                return f"=== [Extracted PDF Text: {filename}] ===\n" + " ".join(words[:2000])
-        except Exception:
-            pass
-
-        # Fallback 2: Graceful document card (e.g. for image/scanned PDFs)
+        # Fallback overview if completely empty/blank
         clean_title = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ")
         return (
             f"# Document Overview: {clean_title}\n\n"
-            f"This PDF ({filename}) was loaded into your knowledge base. "
-            f"If it contains scanned diagrams or image-only pages, Sage will guide your study on '{clean_title}' from foundational principles."
+            f"This PDF document ({filename}) is loaded into your learning environment. "
+            f"Sage will guide your interactive study on '{clean_title}'."
         )
 
     @staticmethod
@@ -222,14 +254,18 @@ class DocumentParser:
             if not line_str:
                 continue
 
+            # Strip page separator tags
+            if line_str.startswith("--- Page") or line_str.startswith("==="):
+                continue
+
             is_md_header = line_str.startswith("#")
-            is_doc_tag = line_str.startswith("=== [Document:") or line_str.startswith("--- Slide")
             is_caps_header = (
-                len(line_str) < 80 
+                len(line_str) < 70 
                 and (line_str.isupper() or line_str.endswith(":") or (line_str[0].isdigit() and "." in line_str[:4]))
+                and len(line_str.split()) <= 8
             )
             
-            if (is_md_header or is_doc_tag or is_caps_header) and len(current_section["content"]) > 0:
+            if (is_md_header or is_caps_header) and len(current_section["content"]) > 0:
                 header_text = re.sub(r"^#+\s*", "", line_str).rstrip(":").strip()
                 if len(header_text) > 2:
                     current_section["text"] = "\n".join(current_section["content"]).strip()

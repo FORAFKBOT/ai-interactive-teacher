@@ -59,12 +59,19 @@ const API = {
   },
 
   async sendChat(message) {
+    const language = document.getElementById("language-select")?.value || "English";
+    const urgency = parseInt(document.getElementById("urgency-range")?.value || "3");
+    const importance = parseInt(document.getElementById("importance-range")?.value || "3");
+
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         session_id: this.sessionId,
-        message: message
+        message: message,
+        language: language,
+        urgency: urgency,
+        importance: importance
       })
     });
     if (!res.ok) {

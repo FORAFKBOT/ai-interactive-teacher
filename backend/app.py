@@ -56,6 +56,9 @@ class SettingsPayload(BaseModel):
 class ChatPayload(BaseModel):
     session_id: Optional[str] = None
     message: str
+    language: Optional[str] = None
+    urgency: Optional[int] = None
+    importance: Optional[int] = None
 
 
 class PastePayload(BaseModel):
@@ -115,12 +118,22 @@ async def upload_documents(
     curriculum = DocumentParser.analyze_curriculum(unified_content, title=doc_title, source_files=processed_filenames)
     session.load_curriculum(curriculum)
     
-    # Initial greeting from teacher
+    # Initial greeting from teacher honoring selected language
     doc_intro = f"'{processed_filenames[0]}'" if len(processed_filenames) == 1 else f"{len(processed_filenames)} uploaded documents ({', '.join(processed_filenames)})"
-    init_response = await teacher_engine.generate_response(
-        session,
-        user_input=f"Hello Teacher! I have uploaded {doc_intro}. Please introduce the core syllabus and kick off our first lesson."
-    )
+    lang_lower = (session.language or "English").lower()
+    
+    if "malayalam" in lang_lower or "മലയാളം" in lang_lower or "ml" in lang_lower:
+        init_prompt = f"നമസ്കാരം ടീച്ചർ! ഞാൻ {doc_intro} അപ്‌ലോഡ് ചെയ്തിട്ടുണ്ട്. ദയവായി ഇതിലെ പ്രധാന സിലബസും ആശയങ്ങളും മലയാളത്തിൽ വിശദീകരിച്ച് നമ്മുടെ പഠനം ആരംഭിക്കൂ."
+    elif "hindi" in lang_lower or "hinglish" in lang_lower or "hi" in lang_lower:
+        init_prompt = f"Namaste Teacher! Maine {doc_intro} upload kiya hai. Kripya iska syllabus Hindi mein samjha kar hamari padhai shuru karein."
+    elif "tamil" in lang_lower or "ta" in lang_lower:
+        init_prompt = f"வணக்கம் ஆசிரியர்! நான் {doc_intro} பதிவேற்றியுள்ளேன். பாடத்திட்டத்தை விளக்கி வகுப்பைத் தொடங்குங்கள்."
+    elif "spanish" in lang_lower:
+        init_prompt = f"¡Hola profesor! He subido {doc_intro}. Por favor, presenta el temario en español y comencemos la lección."
+    else:
+        init_prompt = f"Hello Teacher! I have uploaded {doc_intro}. Please introduce the core syllabus and kick off our first lesson."
+
+    init_response = await teacher_engine.generate_response(session, user_input=init_prompt)
     
     return {
         "status": "success",
@@ -140,10 +153,15 @@ async def paste_document(payload: PastePayload):
     curriculum = DocumentParser.analyze_curriculum(payload.content, title=payload.title)
     session.load_curriculum(curriculum)
     
-    init_response = await teacher_engine.generate_response(
-        session,
-        user_input=f"Hello! I have provided material titled '{payload.title}'. Please outline our core objectives and begin."
-    )
+    lang_lower = (session.language or "English").lower()
+    if "malayalam" in lang_lower or "മലയാളം" in lang_lower or "ml" in lang_lower:
+        paste_prompt = f"നമസ്കാരം ടീച്ചർ! '{payload.title}' എന്ന നോട്ട്സ് ഞാൻ നൽകിയിട്ടുണ്ട്. ഇതിലെ പ്രധാന ലക്ഷ്യങ്ങൾ മലയാളത്തിൽ വിശദീകരിച്ച് തുടങ്ങൂ."
+    elif "hindi" in lang_lower or "hinglish" in lang_lower:
+        paste_prompt = f"Namaste Teacher! '{payload.title}' ke notes maine diye hain. Kripya shuru karein."
+    else:
+        paste_prompt = f"Hello! I have provided material titled '{payload.title}'. Please outline our core objectives and begin."
+
+    init_response = await teacher_engine.generate_response(session, user_input=paste_prompt)
     
     return {
         "status": "success",
@@ -202,6 +220,12 @@ async def update_settings(payload: SettingsPayload):
 async def chat_turn(payload: ChatPayload):
     """Execute a single conversational turn in the live study session."""
     session = get_or_create_session(payload.session_id)
+    if payload.language or payload.urgency or payload.importance:
+        session.set_pedagogical_params(
+            language=payload.language,
+            urgency=payload.urgency,
+            importance=payload.importance
+        )
     if not session.document_data:
         raise HTTPException(status_code=400, detail="No document or curriculum loaded yet. Please upload material first.")
     

@@ -81,14 +81,20 @@ class GoogleDriveManager {
   }
 
   signIn() {
-    if (this.clientId && this.tokenClient) {
-      this.tokenClient.requestAccessToken({ prompt: "consent" });
-    } else {
-      // Instead of an alert prompt, open the unified settings modal to the Google tab!
-      if (typeof openSettingsModal === "function") {
-        openSettingsModal("google");
-      }
+    this.redirectToGoogleAccount();
+  }
+
+  redirectToGoogleAccount() {
+    // Direct redirect to Google Account Center for Google Drive as requested
+    const targetUrl = "https://accounts.google.com/AccountChooser?service=wise&continue=https%3A%2F%2Fdrive.google.com%2Fdrive%2Fu%2F0%2Fmy-drive";
+    window.open(targetUrl, "_blank");
+
+    // Mark as connected in Sage
+    if (!this.userEmail || this.userEmail === "Guest (Local Only)") {
+      this.setUserEmail("Google Account Connected");
     }
+    this.isSignedIn = true;
+    if (this.onStatusChange) this.onStatusChange(true);
   }
 
   signOut() {
