@@ -63,16 +63,10 @@
       </div>
 
       <div class="header-right">
-        <!-- Google Drive Sync Button -->
+        <!-- Google Drive Quick Sync Button -->
         <button id="btn-drive-sync" class="btn btn-outline btn-sm drive-sync-btn" onclick="handleDriveSyncClick()" title="Sync Notebook with Google Drive">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
           <span id="drive-sync-btn-text" class="btn-text-responsive">Drive Sync</span>
-        </button>
-
-        <!-- Connect Mobile Device Pill -->
-        <button class="btn btn-outline btn-sm" onclick="openDeviceModal()" title="Connect on Phone, Tablet or Any Device">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
-          <span class="btn-text-responsive">Connect Device</span>
         </button>
 
         <!-- Mastery Counter -->
@@ -84,8 +78,8 @@
           <span id="header-mastery-text" class="metric-val">0%</span>
         </div>
 
-        <!-- Quick API Key / Settings Button -->
-        <button class="icon-btn" onclick="openSettingsModal()" title="Teacher Persona & API Settings">
+        <!-- Unified Settings Button -->
+        <button class="icon-btn" onclick="openSettingsModal()" title="App Settings (AI, Google Drive & Devices)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
@@ -328,69 +322,148 @@
       </div>
     </div>
 
-    <!-- Settings & API Key Modal -->
+    <!-- Unified Settings & Configuration Modal -->
     <div id="settings-modal" class="modal-backdrop" style="display: none;">
-      <div class="modal-box">
+      <div class="modal-box modal-lg">
         <div class="modal-header">
-          <h3>Settings & Model Configuration</h3>
+          <div class="modal-title-group">
+            <h3>⚙️ Settings & Preferences</h3>
+            <p class="modal-subtitle">Configure AI models, Google Drive cloud sync, and multi-device connection.</p>
+          </div>
           <button class="close-btn" onclick="closeSettingsModal()">✕</button>
         </div>
+
+        <!-- Settings Tabs Navigation -->
+        <div class="modal-tabs">
+          <button id="tab-btn-ai" class="modal-tab-btn active" onclick="switchSettingsTab('ai')">
+            <span>🤖</span> AI Models & Voice
+          </button>
+          <button id="tab-btn-google" class="modal-tab-btn" onclick="switchSettingsTab('google')">
+            <span>☁️</span> Google Drive & Account
+          </button>
+          <button id="tab-btn-devices" class="modal-tab-btn" onclick="switchSettingsTab('devices')">
+            <span>📱</span> Connect Any Device
+          </button>
+        </div>
+
         <div class="modal-body">
-          <div class="setting-group">
-            <label>Google Gemini API Key (Optional)</label>
-            <input type="password" id="gemini-key-input" class="custom-input" placeholder="AIzaSy... (Leave empty to use built-in Smart Teacher)">
-            <small class="helper-text">When provided, Sage utilizes Google Gemini 2.5/1.5 Flash for advanced multi-lingual reasoning.</small>
-          </div>
-
-          <div class="setting-group" style="margin-top: 16px;">
-            <label>OpenAI-Compatible API Key (Optional)</label>
-            <input type="password" id="openai-key-input" class="custom-input" placeholder="sk-... (Optional)">
-          </div>
-
-          <div class="setting-group" style="margin-top: 16px;">
-            <label>Audio / Voice Output Speed</label>
-            <input type="range" id="speech-rate-slider" min="0.7" max="1.5" step="0.1" value="1.0" oninput="document.getElementById('speech-rate-val').innerText = this.value + 'x'">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim);">
-              <span>Slower (0.7x)</span>
-              <span id="speech-rate-val">1.0x</span>
-              <span>Fast (1.5x)</span>
+          <!-- TAB 1: AI Models & Voice -->
+          <div id="pane-settings-ai" class="modal-tab-pane active">
+            <div class="setting-group">
+              <label>Google Gemini API Key (Recommended)</label>
+              <input type="password" id="gemini-key-input" class="custom-input" placeholder="AIzaSy... (Leave empty to use built-in Smart Teacher)">
+              <small class="helper-text">When provided, Sage utilizes Google Gemini 2.5 / 1.5 Flash for advanced multi-lingual reasoning in Malayalam, English, and other languages.</small>
             </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
-        </div>
-      </div>
-    <!-- Connect Device Modal -->
-    <div id="device-modal" class="modal-backdrop" style="display: none;">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>📱 Connect on Phone, Tablet or Any Device</h3>
-          <button class="close-btn" onclick="closeDeviceModal()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="setting-group">
-            <label style="color: #6ee7b7; font-weight: 700;">Option 1: Same Wi-Fi Network</label>
-            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Open this address in Safari, Chrome, or any browser on your phone/tablet:</p>
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="network-ip-display" class="custom-input" readonly value="Detecting...">
-              <button class="btn btn-outline" onclick="copyNetworkIp()">Copy</button>
+
+            <div class="setting-group" style="margin-top: 16px;">
+              <label>OpenAI-Compatible API Key (Optional)</label>
+              <input type="password" id="openai-key-input" class="custom-input" placeholder="sk-... (Optional)">
+              <small class="helper-text">Optional fallback endpoint for custom LLM providers.</small>
+            </div>
+
+            <div class="setting-group" style="margin-top: 16px;">
+              <label>Audio / Voice Output Speed</label>
+              <input type="range" id="speech-rate-slider" min="0.7" max="1.5" step="0.1" value="1.0" oninput="document.getElementById('speech-rate-val').innerText = this.value + 'x'">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+                <span>Slower (0.7x)</span>
+                <span id="speech-rate-val">1.0x</span>
+                <span>Fast (1.5x)</span>
+              </div>
             </div>
           </div>
 
-          <div class="setting-group" style="margin-top: 18px;">
-            <label style="color: #a5b4fc; font-weight: 700;">Option 2: Global Link from Anywhere (Cellular / Remote)</label>
-            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Run this command in your project terminal to generate a secure worldwide HTTPS link:</p>
-            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: #38bdf8;">python run.py --share</code>
+          <!-- TAB 2: Google Drive & Account -->
+          <div id="pane-settings-google" class="modal-tab-pane">
+            <div class="google-account-card">
+              <div class="google-card-header">
+                <div class="google-user-info">
+                  <div class="google-user-avatar" id="google-avatar-icon">G</div>
+                  <div class="google-user-details">
+                    <strong id="google-account-name">Google Account & Drive Sync</strong>
+                    <span id="google-account-status-desc">Personalized cloud memory for your study sessions</span>
+                  </div>
+                </div>
+                <span id="google-status-pill" class="google-status-pill not-connected">Local Only</span>
+              </div>
+
+              <div class="setting-group" style="margin-top: 10px;">
+                <label>Your Google Email or Account Name</label>
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                  <input type="email" id="google-email-input" class="custom-input" placeholder="e.g. yourname@gmail.com" style="margin-top: 0;">
+                  <button class="btn btn-primary btn-sm" onclick="handleSaveGoogleAccount()" style="white-space: nowrap;">Connect</button>
+                  <button class="btn btn-outline btn-sm" id="btn-google-signout" onclick="handleGoogleSignOut()" style="display: none; white-space: nowrap;">Disconnect</button>
+                </div>
+                <small class="helper-text">Links your study notebooks to your Google account profile.</small>
+              </div>
+
+              <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <label style="font-weight: 700; color: #fff; font-size: 13px;">Google Drive Storage Folder</label>
+                <ul class="drive-features-list">
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Dedicated folder: <code>Sage AI Teacher - Notebooks</code>
+                  </li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Zero cloud lock-in: Accessible directly in your Google Drive or as JSON
+                  </li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Syncs on-demand only when you click "Drive Sync" or switch notebooks
+                  </li>
+                </ul>
+
+                <div class="google-actions-row">
+                  <button class="btn btn-primary btn-sm" onclick="handleDriveSyncClick()">
+                    ☁️ Sync Active Notebook to Drive Now
+                  </button>
+                  <button class="btn btn-outline btn-sm" onclick="exportActiveNotebook()">
+                    💾 Export JSON Backup File
+                  </button>
+                </div>
+              </div>
+
+              <details style="margin-top: 14px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 6px; font-size: 12px;">
+                <summary style="cursor: pointer; color: var(--text-dim); font-weight: 600;">
+                  ⚙️ Advanced: Google Cloud OAuth Client ID (Optional)
+                </summary>
+                <div style="margin-top: 10px;">
+                  <p style="color: var(--text-dim); margin-bottom: 6px;">
+                    Standard cloud sync and backup works automatically without any setup. If you have an existing Google Cloud OAuth Client ID and want native browser OAuth popup authorization, enter it below:
+                  </p>
+                  <input type="text" id="google-client-id-input" class="custom-input" placeholder="123456789-abc.apps.googleusercontent.com (Optional)">
+                </div>
+              </details>
+            </div>
           </div>
 
-          <div class="setting-group" style="margin-top: 18px;">
-            <label style="color: #fbbf24; font-weight: 700;">Option 3: 24/7 Cloud Hosting (Free)</label>
-            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Deploy directly to <strong>Render</strong>, <strong>Railway</strong>, or <strong>Hugging Face Spaces</strong> using the included <code>Dockerfile</code> and <code>render.yaml</code>.</p>
+          <!-- TAB 3: Connect Any Device -->
+          <div id="pane-settings-devices" class="modal-tab-pane">
+            <div class="setting-group">
+              <label style="color: #6ee7b7; font-weight: 700;">Option 1: Same Wi-Fi Network (Phone / Tablet / iPad)</label>
+              <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Open this address in Safari, Chrome, or any browser on your mobile device:</p>
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <input type="text" id="network-ip-display" class="custom-input" readonly value="Detecting...">
+                <button class="btn btn-outline" onclick="copyNetworkIp()">Copy</button>
+              </div>
+            </div>
+
+            <div class="setting-group" style="margin-top: 18px;">
+              <label style="color: #a5b4fc; font-weight: 700;">Option 2: Global Link from Anywhere (Cellular / Remote)</label>
+              <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Run this command in your project terminal to generate a secure worldwide HTTPS link:</p>
+              <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: #38bdf8;">python run.py --share</code>
+            </div>
+
+            <div class="setting-group" style="margin-top: 18px;">
+              <label style="color: #fbbf24; font-weight: 700;">Option 3: 24/7 Cloud Hosting (Free)</label>
+              <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Deploy directly to <strong>Render</strong>, <strong>Railway</strong>, or <strong>Hugging Face Spaces</strong> using the included <code>Dockerfile</code> and <code>render.yaml</code>.</p>
+            </div>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button class="btn btn-primary" onclick="closeDeviceModal()">Done</button>
+          <button class="btn btn-outline" onclick="closeSettingsModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveSettings()">Save & Close</button>
         </div>
       </div>
     </div>
@@ -413,13 +486,13 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
             </div>
             <div>
-              <strong id="drive-banner-title">Google Drive Memory</strong>
+              <strong id="drive-banner-title">Google Drive Cloud Memory</strong>
               <small id="drive-banner-desc">Syncs progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.</small>
             </div>
           </div>
           <div class="drive-banner-actions">
-            <button id="btn-google-login" class="btn btn-primary btn-sm" onclick="connectGoogleDrive()">
-              Connect Google Drive
+            <button class="btn btn-primary btn-sm" onclick="openSettingsModal('google')">
+              ☁️ Cloud Sync Settings
             </button>
             <button class="btn btn-outline btn-sm" onclick="exportActiveNotebook()">
               Export JSON Backup

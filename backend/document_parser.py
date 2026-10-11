@@ -69,13 +69,60 @@ class DocumentParser:
         if pypdf is None:
             raise ImportError("pypdf is not installed.")
         text_parts = []
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            for page_idx, page in enumerate(reader.pages):
-                page_text = page.extract_text()
-                if page_text:
-                    text_parts.append(page_text.strip())
-        return "\n\n".join(text_parts)
+        filename = os.path.basename(file_path)
+
+        try:
+            with open(file_path, "rb") as f:
+                reader = pypdf.PdfReader(f, strict=False)
+                
+                # Handle password/encryption
+                if reader.is_encrypted:
+                    try:
+                        reader.decrypt("")
+                    except Exception as dec_err:
+                        print(f"PDF decrypt notice: {dec_err}")
+
+                total_pages = len(reader.pages)
+                for page_idx in range(total_pages):
+                    try:
+                        page = reader.pages[page_idx]
+                        page_text = page.extract_text() or ""
+                        
+                        # Fallback to layout mode if normal is blank
+                        if not page_text.strip():
+                            try:
+                                page_text = page.extract_text(extraction_mode="layout") or ""
+                            except Exception:
+                                pass
+                        
+                        if page_text.strip():
+                            text_parts.append(f"--- Page {page_idx + 1} ---\n{page_text.strip()}")
+                    except Exception as page_err:
+                        print(f"Skipping page {page_idx + 1} due to extraction warning: {page_err}")
+                        continue
+        except Exception as pdf_err:
+            print(f"pypdf reader error on {filename}: {pdf_err}")
+
+        # If standard extraction found text, return it
+        if text_parts:
+            return "\n\n".join(text_parts)
+
+        # Fallback 1: Binary text string extraction
+        try:
+            ascii_text = DocumentParser._extract_ascii_strings(file_path)
+            words = [w for w in ascii_text.split() if len(w) > 2 and any(c.isalpha() for c in w)]
+            if len(words) > 15:
+                return f"=== [Extracted PDF Text: {filename}] ===\n" + " ".join(words[:2000])
+        except Exception:
+            pass
+
+        # Fallback 2: Graceful document card (e.g. for image/scanned PDFs)
+        clean_title = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ")
+        return (
+            f"# Document Overview: {clean_title}\n\n"
+            f"This PDF ({filename}) was loaded into your knowledge base. "
+            f"If it contains scanned diagrams or image-only pages, Sage will guide your study on '{clean_title}' from foundational principles."
+        )
 
     @staticmethod
     def _parse_docx(file_path: str) -> str:

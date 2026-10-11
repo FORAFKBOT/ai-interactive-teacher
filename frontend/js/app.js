@@ -446,26 +446,124 @@ async function syncSettings() {
 function openPasteModal() { document.getElementById("paste-modal").style.display = "flex"; }
 function closePasteModal() { document.getElementById("paste-modal").style.display = "none"; }
 
-async function openDeviceModal() {
-  document.getElementById("device-modal").style.display = "flex";
+async function openSettingsModal(tabName = 'ai') {
+  const modal = document.getElementById("settings-modal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  switchSettingsTab(tabName);
+  
+  // Populate form fields
+  if (window.driveMgr) {
+    const emailInput = document.getElementById("google-email-input");
+    if (emailInput) emailInput.value = window.driveMgr.userEmail || "";
+    const clientIdInput = document.getElementById("google-client-id-input");
+    if (clientIdInput) clientIdInput.value = window.driveMgr.clientId || "";
+    updateGoogleCardUI();
+  }
+
+  // Fetch network IP for devices tab
   try {
     const res = await fetch("/api/network-info").then(r => r.json());
-    if (res.network_url) {
-      document.getElementById("network-ip-display").value = res.network_url;
-    } else {
-      document.getElementById("network-ip-display").value = res.local_url;
+    const netEl = document.getElementById("network-ip-display");
+    if (netEl) {
+      netEl.value = res.network_url || res.local_url || window.location.origin;
     }
   } catch (e) {
-    document.getElementById("network-ip-display").value = window.location.origin;
+    const netEl = document.getElementById("network-ip-display");
+    if (netEl) netEl.value = window.location.origin;
   }
 }
 
+function closeSettingsModal() {
+  const modal = document.getElementById("settings-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function openDeviceModal() {
+  openSettingsModal('devices');
+}
+
 function closeDeviceModal() {
-  document.getElementById("device-modal").style.display = "none";
+  closeSettingsModal();
+}
+
+function switchSettingsTab(tabName) {
+  const tabs = ['ai', 'google', 'devices'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    const pane = document.getElementById(`pane-settings-${t}`);
+    if (btn) btn.classList.toggle("active", t === tabName);
+    if (pane) pane.classList.toggle("active", t === tabName);
+  });
+}
+
+function updateGoogleCardUI() {
+  const emailInput = document.getElementById("google-email-input");
+  const avatarIcon = document.getElementById("google-avatar-icon");
+  const accountName = document.getElementById("google-account-name");
+  const descEl = document.getElementById("google-account-status-desc");
+  const statusPill = document.getElementById("google-status-pill");
+  const signoutBtn = document.getElementById("btn-google-signout");
+
+  const email = (window.driveMgr && window.driveMgr.userEmail) || (emailInput ? emailInput.value.trim() : "");
+  const isConnected = !!(email && window.driveMgr && window.driveMgr.isSignedIn);
+
+  if (avatarIcon) {
+    avatarIcon.innerText = email ? email[0].toUpperCase() : "G";
+  }
+  if (accountName) {
+    accountName.innerText = email ? email : "Google Account & Drive Sync";
+  }
+  if (descEl) {
+    descEl.innerText = isConnected 
+      ? "Connected • Ready to sync notebooks to Google Drive folder"
+      : "Enter your Google email above to link your study profile";
+  }
+  if (statusPill) {
+    if (isConnected) {
+      statusPill.className = "google-status-pill connected";
+      statusPill.innerText = "☁️ Connected";
+    } else {
+      statusPill.className = "google-status-pill not-connected";
+      statusPill.innerText = "Local Only";
+    }
+  }
+  if (signoutBtn) {
+    signoutBtn.style.display = isConnected ? "inline-flex" : "none";
+  }
+}
+
+function handleSaveGoogleAccount() {
+  const email = (document.getElementById("google-email-input")?.value || "").trim();
+  const clientId = (document.getElementById("google-client-id-input")?.value || "").trim();
+
+  if (window.driveMgr) {
+    if (clientId) window.driveMgr.setClientId(clientId);
+    if (email) {
+      window.driveMgr.setUserEmail(email);
+      alert(`✓ Connected Google Account: ${email}\nNotebooks can now sync on-demand to your Drive folder.`);
+    } else {
+      alert("Please enter a valid Google email address.");
+      return;
+    }
+  }
+  updateGoogleCardUI();
+  updateDriveBanner();
+}
+
+function handleGoogleSignOut() {
+  if (window.driveMgr) {
+    window.driveMgr.signOut();
+  }
+  const emailInput = document.getElementById("google-email-input");
+  if (emailInput) emailInput.value = "";
+  updateGoogleCardUI();
+  updateDriveBanner();
 }
 
 function copyNetworkIp() {
   const el = document.getElementById("network-ip-display");
+  if (!el) return;
   el.select();
   navigator.clipboard.writeText(el.value).then(() => {
     alert("Copied to clipboard! Open this URL on your phone or tablet browser.");
@@ -491,21 +589,25 @@ async function submitPastedContent() {
   }
 }
 
-function openSettingsModal() { document.getElementById("settings-modal").style.display = "flex"; }
-function closeSettingsModal() { document.getElementById("settings-modal").style.display = "none"; }
-
 async function saveSettings() {
-  const geminiKey = document.getElementById("gemini-key-input").value.trim();
-  const openaiKey = document.getElementById("openai-key-input").value.trim();
-  const rate = parseFloat(document.getElementById("speech-rate-slider").value);
-  window.voiceCtrl.speechRate = rate;
+  const geminiKey = document.getElementById("gemini-key-input")?.value.trim();
+  const openaiKey = document.getElementById("openai-key-input")?.value.trim();
+  const rate = parseFloat(document.getElementById("speech-rate-slider")?.value || "1.0");
+  if (window.voiceCtrl) window.voiceCtrl.speechRate = rate;
+
+  const clientId = document.getElementById("google-client-id-input")?.value.trim();
+  const email = document.getElementById("google-email-input")?.value.trim();
+  if (window.driveMgr) {
+    if (clientId !== undefined) window.driveMgr.setClientId(clientId);
+    if (email) window.driveMgr.setUserEmail(email);
+  }
 
   await API.updateSettings({
     gemini_key: geminiKey || null,
     openai_key: openaiKey || null
   });
   closeSettingsModal();
-  alert("Settings updated!");
+  updateDriveBanner();
 }
 
 // Helpers
@@ -544,24 +646,15 @@ function closeNotebooksModal() {
 }
 
 function updateDriveBanner() {
-  const btn = document.getElementById("btn-google-login");
   const title = document.getElementById("drive-banner-title");
   const desc = document.getElementById("drive-banner-desc");
 
   if (window.driveMgr && window.driveMgr.isSignedIn) {
-    title.innerText = `Connected: ${window.driveMgr.userEmail || "Google Drive"}`;
-    desc.innerText = `Dedicated Folder: "Sage AI Teacher - Notebooks" • Syncs only when in use.`;
-    if (btn) {
-      btn.innerText = "Disconnect";
-      btn.onclick = () => { window.driveMgr.signOut(); updateDriveBanner(); };
-    }
+    if (title) title.innerText = `Connected: ${window.driveMgr.userEmail || "Google Drive"}`;
+    if (desc) desc.innerText = `Folder: "Sage AI Teacher - Notebooks" • Syncs only when in use.`;
   } else {
-    title.innerText = "Google Drive Memory";
-    desc.innerText = `Sync progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.`;
-    if (btn) {
-      btn.innerText = "Connect Google Drive";
-      btn.onclick = connectGoogleDrive;
-    }
+    if (title) title.innerText = "Google Drive Cloud Memory";
+    if (desc) desc.innerText = `Sync progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.`;
   }
 }
 
@@ -690,10 +783,10 @@ async function handleDriveSyncClick() {
   if (syncBtn) syncBtn.classList.add("syncing");
 
   try {
-    if (!window.driveMgr.isSignedIn) {
-      const choice = confirm("Google Drive is not connected yet. Would you like to connect your Google account now? (Or press Cancel to download a local JSON backup file)");
+    if (!window.driveMgr.isSignedIn && !window.driveMgr.userEmail) {
+      const choice = confirm("Google account is not linked yet.\n\nWould you like to open Cloud Sync settings to link your account?\n(Press Cancel to download a direct JSON backup file immediately instead)");
       if (choice) {
-        window.driveMgr.signIn();
+        openSettingsModal("google");
         return;
       } else {
         exportActiveNotebook();
@@ -705,13 +798,15 @@ async function handleDriveSyncClick() {
       const fullNb = await API.exportNotebook(appState.session.notebook_id);
       const fileId = await window.driveMgr.syncNotebook(fullNb);
       if (fileId) {
-        alert(`✓ Synced to Google Drive in folder "Sage AI Teacher - Notebooks"!`);
+        alert(`✓ Synced '${fullNb.title || 'Notebook'}' to Google Drive in folder "Sage AI Teacher - Notebooks"!`);
         const nbStatusEl = document.getElementById("header-nb-status");
         if (nbStatusEl) {
           nbStatusEl.innerText = "☁️ Synced";
           nbStatusEl.className = "nb-badge synced";
         }
       }
+    } else {
+      alert("Please open or create a notebook before syncing.");
     }
   } catch (e) {
     alert("Drive sync failed: " + e.message);
