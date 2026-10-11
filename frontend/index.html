@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sage • Interactive Live AI Teacher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-dark">
+  <div id="app" class="app-layout">
+
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-group">
+          <div class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="brand-title">Sage</span>
+            <span class="brand-badge">Live Interactive AI Teacher</span>
+          </div>
+        </div>
+
+        <div class="anti-drift-indicator" title="Anti-Drift Guardian is actively keeping the teacher strictly grounded to your uploaded core syllabus">
+          <span class="pulse-dot"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Anti-Drift Anchor Active</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- View Tabs -->
+        <div class="mode-switcher">
+          <button id="tab-live-stage" class="mode-tab active" onclick="switchView('live')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            <span>Live Talk Stage</span>
+          </button>
+          <button id="tab-study-desk" class="mode-tab" onclick="switchView('desk')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            <span>Study Desk & Notes</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Connect Mobile Device Pill -->
+        <button class="btn btn-outline btn-sm" onclick="openDeviceModal()" title="Connect on Phone, Tablet or Any Device">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+          <span>Connect Device</span>
+        </button>
+
+        <!-- Mastery Counter -->
+        <div class="metric-pill" title="Overall mastery of uploaded core objectives">
+          <span class="metric-label">Mastery</span>
+          <div class="metric-bar-wrap">
+            <div id="header-mastery-bar" class="metric-bar-fill" style="width: 0%"></div>
+          </div>
+          <span id="header-mastery-text" class="metric-val">0%</span>
+        </div>
+
+        <!-- Quick API Key / Settings Button -->
+        <button class="icon-btn" onclick="openSettingsModal()" title="Teacher Persona & API Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="main-content">
+
+      <!-- Left Sidebar: Pedagogical Control & Core Objectives Anchor -->
+      <aside class="sidebar-left">
+        <!-- Upload & Source Widget -->
+        <div class="sidebar-card">
+          <div class="card-header">
+            <h3>Uploaded Knowledge Base</h3>
+            <span id="doc-title-badge" class="badge">No file loaded</span>
+          </div>
+
+          <div id="upload-actions" class="upload-zone-compact">
+            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display: none;" onchange="handleFileUpload(event)">
+            <button class="btn btn-outline btn-sm full-width" onclick="document.getElementById('file-input').click()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              Upload PDF / DOCX / TXT
+            </button>
+            <div class="sample-pill-row">
+              <span class="sample-label">Or test drive:</span>
+              <button class="chip-btn" onclick="loadSample('quantum')">Quantum Computing</button>
+              <button class="chip-btn" onclick="loadSample('cellular')">Cellular Respiration</button>
+              <button class="chip-btn" onclick="openPasteModal()">Paste Text</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pedagogy Dial Controls: Urgency & Importance -->
+        <div class="sidebar-card">
+          <div class="card-header">
+            <h3>Teacher Persona & Dials</h3>
+            <span class="badge-subtle" id="persona-summary-badge">Level 3 • Balanced</span>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="preset-buttons">
+            <button class="preset-btn" onclick="applyPreset(5, 5, '⚡ Exam Cram')">
+              <span class="preset-icon">⚡</span>
+              <div class="preset-info">
+                <strong>1-Hour Cram</strong>
+                <small>High Yield & Rapid Fire</small>
+              </div>
+            </button>
+            <button class="preset-btn" onclick="applyPreset(3, 5, '🎯 High Rigor')">
+              <span class="preset-icon">🎯</span>
+              <div class="preset-info">
+                <strong>Defense / Interview</strong>
+                <small>Zero Tolerance Fluff</small>
+              </div>
+            </button>
+            <button class="preset-btn" onclick="applyPreset(1, 2, '☕ Deep Dive')">
+              <span class="preset-icon">☕</span>
+              <div class="preset-info">
+                <strong>Curious Deep Dive</strong>
+                <small>Analogies & First Principles</small>
+              </div>
+            </button>
+          </div>
+
+          <!-- Urgency Slider -->
+          <div class="dial-control">
+            <div class="dial-header">
+              <label for="urgency-range">Urgency (Time Available)</label>
+              <span id="urgency-val-label" class="dial-value">3 - Balanced</span>
+            </div>
+            <input type="range" id="urgency-range" min="1" max="5" value="3" step="1" oninput="onUrgencyChange(this.value)">
+            <div class="dial-ticks">
+              <span>Deep Dive</span>
+              <span>Balanced</span>
+              <span>Cram Mode</span>
+            </div>
+          </div>
+
+          <!-- Importance Slider -->
+          <div class="dial-control">
+            <div class="dial-header">
+              <label for="importance-range">Importance & Rigor</label>
+              <span id="importance-val-label" class="dial-value">3 - Standard</span>
+            </div>
+            <input type="range" id="importance-range" min="1" max="5" value="3" step="1" oninput="onImportanceChange(this.value)">
+            <div class="dial-ticks">
+              <span>Casual</span>
+              <span>Academic</span>
+              <span>High Stakes</span>
+            </div>
+          </div>
+
+          <!-- Language Selector -->
+          <div class="dial-control">
+            <div class="dial-header">
+              <label for="language-select">Preferred Language</label>
+            </div>
+            <select id="language-select" class="custom-select" onchange="onLanguageChange(this.value)">
+              <option value="English" selected>English</option>
+              <option value="Hindi (हिंदी)">Hindi (हिंदी)</option>
+              <option value="Hinglish (Hindi + English mix)">Hinglish (Conversational)</option>
+              <option value="Spanish (Español)">Spanish (Español)</option>
+              <option value="French (Français)">French (Français)</option>
+              <option value="German (Deutsch)">German (Deutsch)</option>
+              <option value="Mandarin Chinese (中文)">Mandarin (中文)</option>
+              <option value="Japanese (日本語)">Japanese (日本語)</option>
+              <option value="Arabic (العربية)">Arabic (العربية)</option>
+              <option value="Portuguese (Português)">Portuguese (Português)</option>
+              <option value="Bengali (বাংলা)">Bengali (বাংলা)</option>
+              <option value="Telugu (తెలుగు)">Telugu (తెలుగు)</option>
+              <option value="Tamil (தமிழ்)">Tamil (தமிழ்)</option>
+              <option value="Russian (Русский)">Russian (Русский)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Anti-Drift Core Curriculum Anchor Roadmap -->
+        <div class="sidebar-card flex-grow">
+          <div class="card-header">
+            <h3>Core Grounding Anchor</h3>
+            <span class="info-tooltip" title="Sage monitors each objective. Answering questions advances mastery without losing the foundational curriculum.">ℹ️</span>
+          </div>
+          <p class="syllabus-helper-text">Topics extracted from your upload. Sage will never forget these:</p>
+          <div id="concepts-checklist" class="concepts-list">
+            <div class="empty-syllabus">Upload notes to generate the grounded curriculum roadmap.</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center & Right Workspace: Dual Views (Live Talk Stage OR Study Desk) -->
+      <section class="main-stage">
+
+        <!-- VIEW 1: Live Talk Stage (NotebookLM Interactive Audio Experience) -->
+        <div id="view-live-stage" class="stage-container">
+          <div class="live-orb-wrapper">
+            <div id="live-visualizer" class="live-visualizer-orb idle">
+              <div class="orb-ring ring-1"></div>
+              <div class="orb-ring ring-2"></div>
+              <div class="orb-ring ring-3"></div>
+              <div class="orb-core">
+                <svg id="orb-mic-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" x2="12" y1="19" y2="22"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="live-status-hud">
+              <span id="live-state-badge" class="badge-status status-ready">Ready to Study</span>
+              <p id="live-caption-preview" class="live-caption">Press "Start Live Talk" or speak into your microphone to begin our live interactive dialogue.</p>
+            </div>
+
+            <!-- Waveform Canvas -->
+            <canvas id="audio-wave-canvas" width="600" height="70" class="audio-wave-canvas"></canvas>
+          </div>
+
+          <!-- Live Talk Interactive Controls Bar -->
+          <div class="live-controls-bar">
+            <button id="btn-toggle-live" class="btn btn-primary btn-lg" onclick="toggleLiveSession()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span id="live-btn-text">Start Live Interactive Mode</span>
+            </button>
+
+            <button id="btn-interrupt" class="btn btn-warning btn-lg" onclick="interruptTeacher()" style="display: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+              <span>Interrupt / Stop Speaking</span>
+            </button>
+
+            <button id="btn-toggle-mic" class="btn btn-outline btn-lg" onclick="toggleMic()" title="Hold or Toggle Microphone">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              <span id="mic-btn-text">Push to Speak</span>
+            </button>
+          </div>
+
+          <!-- Recent Spoken Exchange Preview -->
+          <div class="live-transcript-card">
+            <div class="transcript-card-header">
+              <span>Active Socratic Exchange</span>
+              <span id="current-concept-pill" class="badge-subtle">Topic: Waiting for upload</span>
+            </div>
+            <div id="live-active-exchange" class="exchange-body">
+              <div class="exchange-placeholder">
+                Upload your document or click a test sample on the left to begin your interactive live study session!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Study Desk (Split View with Full Transcript & Socratic Checkpoint Prompts) -->
+        <div id="view-study-desk" class="stage-container" style="display: none;">
+          <div class="desk-chat-stream" id="chat-messages-container">
+            <div class="message-welcome">
+              <div class="welcome-icon">🎓</div>
+              <h2>Welcome to Sage Interactive Learning</h2>
+              <p>Upload your syllabus, lecture notes, textbook chapters, or research papers. Sage parses your core curriculum, adapts dynamically to your urgency and importance level, and teaches Socratically in your preferred language!</p>
+            </div>
+          </div>
+
+          <!-- Bottom Text / Speech Input Box -->
+          <div class="desk-input-dock">
+            <form id="chat-form" onsubmit="handleSendSubmit(event)">
+              <div class="input-bar">
+                <button type="button" class="btn-mic-inline" id="desk-mic-btn" onclick="toggleMic()" title="Dictate answer with voice">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                </button>
+                <textarea id="chat-input" rows="1" placeholder="Type or speak your answer to Sage's question..." onkeydown="handleInputKeydown(event)"></textarea>
+                <button type="submit" class="btn-send" id="btn-send">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Paste Notes Modal -->
+    <div id="paste-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>Paste Study Notes or Textbook Excerpt</h3>
+          <button class="close-btn" onclick="closePasteModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <label>Document Title</label>
+          <input type="text" id="paste-title" class="custom-input" placeholder="e.g. Operating Systems: Virtual Memory" value="Lecture Notes">
+          <label style="margin-top: 12px;">Notes / Text Content</label>
+          <textarea id="paste-content" class="custom-textarea" rows="10" placeholder="Paste chapters, lecture notes, or markdown here..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closePasteModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitPastedContent()">Analyze & Load Curriculum</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings & API Key Modal -->
+    <div id="settings-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>Settings & Model Configuration</h3>
+          <button class="close-btn" onclick="closeSettingsModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label>Google Gemini API Key (Optional)</label>
+            <input type="password" id="gemini-key-input" class="custom-input" placeholder="AIzaSy... (Leave empty to use built-in Smart Teacher)">
+            <small class="helper-text">When provided, Sage utilizes Google Gemini 2.5/1.5 Flash for advanced multi-lingual reasoning.</small>
+          </div>
+
+          <div class="setting-group" style="margin-top: 16px;">
+            <label>OpenAI-Compatible API Key (Optional)</label>
+            <input type="password" id="openai-key-input" class="custom-input" placeholder="sk-... (Optional)">
+          </div>
+
+          <div class="setting-group" style="margin-top: 16px;">
+            <label>Audio / Voice Output Speed</label>
+            <input type="range" id="speech-rate-slider" min="0.7" max="1.5" step="0.1" value="1.0" oninput="document.getElementById('speech-rate-val').innerText = this.value + 'x'">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim);">
+              <span>Slower (0.7x)</span>
+              <span id="speech-rate-val">1.0x</span>
+              <span>Fast (1.5x)</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+        </div>
+      </div>
+    <!-- Connect Device Modal -->
+    <div id="device-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>📱 Connect on Phone, Tablet or Any Device</h3>
+          <button class="close-btn" onclick="closeDeviceModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label style="color: #6ee7b7; font-weight: 700;">Option 1: Same Wi-Fi Network</label>
+            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Open this address in Safari, Chrome, or any browser on your phone/tablet:</p>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <input type="text" id="network-ip-display" class="custom-input" readonly value="Detecting...">
+              <button class="btn btn-outline" onclick="copyNetworkIp()">Copy</button>
+            </div>
+          </div>
+
+          <div class="setting-group" style="margin-top: 18px;">
+            <label style="color: #a5b4fc; font-weight: 700;">Option 2: Global Link from Anywhere (Cellular / Remote)</label>
+            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Run this command in your project terminal to generate a secure worldwide HTTPS link:</p>
+            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: #38bdf8;">python run.py --share</code>
+          </div>
+
+          <div class="setting-group" style="margin-top: 18px;">
+            <label style="color: #fbbf24; font-weight: 700;">Option 3: 24/7 Cloud Hosting (Free)</label>
+            <p style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">Deploy directly to <strong>Render</strong>, <strong>Railway</strong>, or <strong>Hugging Face Spaces</strong> using the included <code>Dockerfile</code> and <code>render.yaml</code>.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeDeviceModal()">Done</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/voice.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
