@@ -266,6 +266,20 @@ function renderSessionState(session) {
     docBadge.title = session.document_title || "";
   }
 
+  // Header Notebook Indicator
+  const nbTitleEl = document.getElementById("header-notebook-title");
+  if (nbTitleEl) nbTitleEl.innerText = session.notebook_title || "Active Notebook";
+  const nbStatusEl = document.getElementById("header-nb-status");
+  if (nbStatusEl) {
+    if (window.driveMgr && window.driveMgr.isSignedIn) {
+      nbStatusEl.innerText = "☁️ Synced";
+      nbStatusEl.className = "nb-badge synced";
+    } else {
+      nbStatusEl.innerText = "Local";
+      nbStatusEl.className = "nb-badge";
+    }
+  }
+
   // Render Source Files Chips if multiple files
   const filesContainer = document.getElementById("loaded-files-chips");
   if (filesContainer) {
@@ -514,3 +528,223 @@ function renderMarkdownText(text) {
   html = html.replace(/\n/g, "<br>");
   return html;
 }
+
+// ========================================================
+// NOTEBOOKS & GOOGLE DRIVE MANAGEMENT
+// ========================================================
+
+async function openNotebooksModal() {
+  document.getElementById("notebooks-modal").style.display = "flex";
+  updateDriveBanner();
+  await loadNotebooksList();
+}
+
+function closeNotebooksModal() {
+  document.getElementById("notebooks-modal").style.display = "none";
+}
+
+function updateDriveBanner() {
+  const btn = document.getElementById("btn-google-login");
+  const title = document.getElementById("drive-banner-title");
+  const desc = document.getElementById("drive-banner-desc");
+
+  if (window.driveMgr && window.driveMgr.isSignedIn) {
+    title.innerText = `Connected: ${window.driveMgr.userEmail || "Google Drive"}`;
+    desc.innerText = `Dedicated Folder: "Sage AI Teacher - Notebooks" • Syncs only when in use.`;
+    if (btn) {
+      btn.innerText = "Disconnect";
+      btn.onclick = () => { window.driveMgr.signOut(); updateDriveBanner(); };
+    }
+  } else {
+    title.innerText = "Google Drive Memory";
+    desc.innerText = `Sync progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.`;
+    if (btn) {
+      btn.innerText = "Connect Google Drive";
+      btn.onclick = connectGoogleDrive;
+    }
+  }
+}
+
+async function loadNotebooksList() {
+  const container = document.getElementById("notebooks-grid");
+  if (!container) return;
+
+  try {
+    const res = await API.getNotebooks();
+    const notebooks = res.notebooks || [];
+    const activeId = appState.session ? appState.session.notebook_id : null;
+
+    if (notebooks.length === 0) {
+      container.innerHTML = `<div class="empty-syllabus">No notebooks yet. Create your first notebook above!</div>`;
+      return;
+    }
+
+    container.innerHTML = notebooks.map(nb => {
+      const isActive = nb.id === activeId;
+      const isSynced = !!nb.drive_file_id;
+      const mastery = nb.overall_mastery || 0;
+
+      return `
+        <div class="notebook-card ${isActive ? 'active' : ''}" onclick="handleSwitchNotebook('${nb.id}')">
+          <div class="nb-card-header">
+            <span class="nb-card-title">📓 ${escapeHtml(nb.title)}</span>
+            <span class="nb-card-status ${isSynced ? 'synced' : 'local'}">
+              ${isSynced ? '☁️ Synced' : '💾 Local'}
+            </span>
+          </div>
+
+          <div class="nb-card-stats">
+            <div class="nb-progress-row">
+              <span>Mastery</span>
+              <strong style="color: var(--accent-emerald);">${mastery}%</strong>
+            </div>
+            <div class="nb-progress-bar-wrap">
+              <div class="nb-progress-bar-fill" style="width: ${mastery}%"></div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+              ${nb.concepts_count} concepts • ${nb.source_files.length} file(s)
+            </div>
+          </div>
+
+          <div class="nb-card-footer">
+            <span style="font-size: 10px; color: var(--text-muted);">${isActive ? '● Currently Active' : 'Click to Open'}</span>
+            ${!isActive ? `<button class="nb-delete-btn" onclick="handleDeleteNotebook(event, '${nb.id}')" title="Delete Notebook">🗑️</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    container.innerHTML = `<div class="empty-syllabus">Failed to load notebooks: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function handleCreateNotebook() {
+  const input = document.getElementById("new-notebook-title");
+  const title = input.value.trim();
+  if (!title) {
+    alert("Please enter a notebook title.");
+    return;
+  }
+  input.value = "";
+
+  try {
+    const res = await API.createNotebook(title);
+    renderSessionState(res.session);
+    renderHistory([]);
+    document.getElementById("chat-messages-container").innerHTML = `
+      <div class="message-welcome">
+        <div class="welcome-icon">📓</div>
+        <h2>${escapeHtml(res.notebook.title)}</h2>
+        <p>This is a fresh notebook with its own isolated memory and live teacher session. Upload documents or click test drive to begin!</p>
+      </div>
+    `;
+    closeNotebooksModal();
+  } catch (e) {
+    alert("Could not create notebook: " + e.message);
+  }
+}
+
+function handleNewNotebookKeydown(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleCreateNotebook();
+  }
+}
+
+async function handleSwitchNotebook(notebookId) {
+  try {
+    const res = await API.switchNotebook(notebookId);
+    renderSessionState(res.session);
+    renderHistory(res.history || []);
+    
+    // Sync to Drive on-demand if signed in
+    if (window.driveMgr && window.driveMgr.isSignedIn) {
+      window.driveMgr.syncNotebook(res.notebook);
+    }
+
+    closeNotebooksModal();
+  } catch (e) {
+    alert("Could not switch notebook: " + e.message);
+  }
+}
+
+async function handleDeleteNotebook(e, notebookId) {
+  e.stopPropagation();
+  if (!confirm("Are you sure you want to delete this notebook?")) return;
+  try {
+    await API.deleteNotebook(notebookId);
+    await loadNotebooksList();
+  } catch (err) {
+    alert("Failed to delete notebook: " + err.message);
+  }
+}
+
+function connectGoogleDrive() {
+  if (window.driveMgr) {
+    window.driveMgr.signIn();
+  }
+}
+
+async function handleDriveSyncClick() {
+  const syncBtn = document.getElementById("btn-drive-sync");
+  if (syncBtn) syncBtn.classList.add("syncing");
+
+  try {
+    if (!window.driveMgr.isSignedIn) {
+      const choice = confirm("Google Drive is not connected yet. Would you like to connect your Google account now? (Or press Cancel to download a local JSON backup file)");
+      if (choice) {
+        window.driveMgr.signIn();
+        return;
+      } else {
+        exportActiveNotebook();
+        return;
+      }
+    }
+
+    if (appState.session && appState.session.notebook_id) {
+      const fullNb = await API.exportNotebook(appState.session.notebook_id);
+      const fileId = await window.driveMgr.syncNotebook(fullNb);
+      if (fileId) {
+        alert(`✓ Synced to Google Drive in folder "Sage AI Teacher - Notebooks"!`);
+        const nbStatusEl = document.getElementById("header-nb-status");
+        if (nbStatusEl) {
+          nbStatusEl.innerText = "☁️ Synced";
+          nbStatusEl.className = "nb-badge synced";
+        }
+      }
+    }
+  } catch (e) {
+    alert("Drive sync failed: " + e.message);
+  } finally {
+    if (syncBtn) syncBtn.classList.remove("syncing");
+  }
+}
+
+async function exportActiveNotebook() {
+  if (!appState.session || !appState.session.notebook_id) return;
+  try {
+    const fullNb = await API.exportNotebook(appState.session.notebook_id);
+    window.driveMgr.exportNotebookLocal(fullNb);
+  } catch (e) {
+    alert("Export failed: " + e.message);
+  }
+}
+
+async function handleImportNotebookFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const res = await API.importNotebook(parsed);
+      await handleSwitchNotebook(res.notebook.id);
+      event.target.value = "";
+    } catch (err) {
+      alert("Invalid notebook JSON: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+

@@ -6,6 +6,7 @@ Exposes REST and static file endpoints for the live web application.
 import os
 import shutil
 import socket
+import time
 from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +15,7 @@ from pydantic import BaseModel
 
 from backend.document_parser import DocumentParser
 from backend.session_manager import get_or_create_session, LearningSession
+from backend.notebook_manager import NotebookManager
 from backend.teacher_engine import TeacherEngine
 
 app = FastAPI(title="AI Interactive Teacher", version="1.0.0")
@@ -236,6 +238,91 @@ async def get_network_info():
         "local_url": f"http://localhost:8000",
         "network_url": f"http://{ip}:8000" if ip != "127.0.0.1" else None
     }
+
+
+class NotebookCreatePayload(BaseModel):
+    title: str = "New Notebook"
+    session_id: Optional[str] = None
+
+
+class DriveSyncPayload(BaseModel):
+    drive_file_id: Optional[str] = None
+    drive_folder_id: Optional[str] = None
+
+
+@app.get("/api/notebooks")
+async def list_notebooks():
+    """List all available notebooks with learning progress and Drive sync status."""
+    return {"notebooks": NotebookManager.list_notebooks()}
+
+
+@app.post("/api/notebooks")
+async def create_notebook(payload: NotebookCreatePayload):
+    """Create a new independent notebook and bind it to the current session."""
+    nb = NotebookManager.create_notebook(payload.title)
+    session = get_or_create_session(payload.session_id, notebook_id=nb["id"])
+    session.load_from_notebook(nb)
+    return {
+        "status": "success",
+        "notebook": nb,
+        "session": session.to_dict()
+    }
+
+
+@app.get("/api/notebooks/{notebook_id}")
+async def switch_notebook(notebook_id: str, session_id: Optional[str] = None):
+    """Switch active learning session to a specific notebook."""
+    nb = NotebookManager.get_notebook(notebook_id)
+    if not nb:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    
+    session = get_or_create_session(session_id, notebook_id=notebook_id)
+    session.load_from_notebook(nb)
+    return {
+        "status": "success",
+        "notebook": nb,
+        "session": session.to_dict(),
+        "history": session.history
+    }
+
+
+@app.delete("/api/notebooks/{notebook_id}")
+async def delete_notebook(notebook_id: str):
+    """Delete a notebook."""
+    success = NotebookManager.delete_notebook(notebook_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    return {"status": "success", "notebooks": NotebookManager.list_notebooks()}
+
+
+@app.post("/api/notebooks/{notebook_id}/drive-sync")
+async def record_drive_sync(notebook_id: str, payload: DriveSyncPayload):
+    """Record Google Drive file and folder metadata after client syncs."""
+    nb = NotebookManager.get_notebook(notebook_id)
+    if not nb:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    
+    nb["drive_file_id"] = payload.drive_file_id
+    nb["drive_synced_at"] = time.time()
+    NotebookManager.save_notebook(notebook_id, nb)
+    return {"status": "success", "notebook": nb}
+
+
+@app.get("/api/notebooks/{notebook_id}/export")
+async def export_notebook(notebook_id: str):
+    """Export complete notebook structure as JSON payload."""
+    nb = NotebookManager.get_notebook(notebook_id)
+    if not nb:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    return nb
+
+
+@app.post("/api/notebooks/import")
+async def import_notebook(payload: Dict[str, Any]):
+    """Import notebook from Google Drive JSON backup."""
+    title = payload.get("title", "Imported Notebook")
+    nb = NotebookManager.create_notebook(title=title, initial_data=payload)
+    return {"status": "success", "notebook": nb}
 
 
 # Mount frontend static directory

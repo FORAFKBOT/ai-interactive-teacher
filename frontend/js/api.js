@@ -96,5 +96,48 @@ const API = {
       method: "POST"
     });
     return await res.json();
+  },
+
+  async getNotebooks() {
+    const res = await fetch(`${API_BASE}/api/notebooks`);
+    return await res.json();
+  },
+
+  async createNotebook(title) {
+    const res = await fetch(`${API_BASE}/api/notebooks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title || "New Notebook",
+        session_id: this.sessionId
+      })
+    });
+    return await res.json();
+  },
+
+  async switchNotebook(notebookId) {
+    const res = await fetch(`${API_BASE}/api/notebooks/${notebookId}?session_id=${encodeURIComponent(this.sessionId)}`);
+    return await res.json();
+  },
+
+  async deleteNotebook(notebookId) {
+    const res = await fetch(`${API_BASE}/api/notebooks/${notebookId}`, {
+      method: "DELETE"
+    });
+    return await res.json();
+  },
+
+  async exportNotebook(notebookId) {
+    const res = await fetch(`${API_BASE}/api/notebooks/${notebookId}/export`);
+    return await res.json();
+  },
+
+  async importNotebook(payload) {
+    const res = await fetch(`${API_BASE}/api/notebooks/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
   }
 };

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="theme-dark">
   <div id="app" class="app-layout">
@@ -26,6 +27,14 @@
             <span class="brand-title">Sage</span>
             <span class="brand-badge">Live Interactive AI Teacher</span>
           </div>
+        </div>
+
+        <!-- Notebook Dropdown / Switcher -->
+        <div class="notebook-dropdown-trigger" onclick="openNotebooksModal()" title="Manage & Switch Notebooks (Google Drive Sync)">
+          <span class="nb-icon">📓</span>
+          <span id="header-notebook-title" class="nb-title">Active Notebook</span>
+          <span class="nb-badge" id="header-nb-status">Local</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
 
         <div class="anti-drift-indicator" title="Anti-Drift Guardian is actively keeping the teacher strictly grounded to your uploaded core syllabus">
@@ -54,6 +63,12 @@
       </div>
 
       <div class="header-right">
+        <!-- Google Drive Sync Button -->
+        <button id="btn-drive-sync" class="btn btn-outline btn-sm drive-sync-btn" onclick="handleDriveSyncClick()" title="Sync Notebook with Google Drive">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+          <span id="drive-sync-btn-text" class="btn-text-responsive">Drive Sync</span>
+        </button>
+
         <!-- Connect Mobile Device Pill -->
         <button class="btn btn-outline btn-sm" onclick="openDeviceModal()" title="Connect on Phone, Tablet or Any Device">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
@@ -380,9 +395,65 @@
       </div>
     </div>
 
+    <!-- Multiple Notebooks & Google Drive Modal -->
+    <div id="notebooks-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-box modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>📚 Your Notebooks & Live Study Hub</h3>
+            <p class="modal-subtitle">Each notebook preserves its own curriculum, history, and live interaction progress.</p>
+          </div>
+          <button class="close-btn" onclick="closeNotebooksModal()">✕</button>
+        </div>
+
+        <!-- Google Drive Memory Banner -->
+        <div class="drive-status-banner">
+          <div class="drive-banner-left">
+            <div class="drive-banner-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+            </div>
+            <div>
+              <strong id="drive-banner-title">Google Drive Memory</strong>
+              <small id="drive-banner-desc">Syncs progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.</small>
+            </div>
+          </div>
+          <div class="drive-banner-actions">
+            <button id="btn-google-login" class="btn btn-primary btn-sm" onclick="connectGoogleDrive()">
+              Connect Google Drive
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="exportActiveNotebook()">
+              Export JSON Backup
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions Row: Create New Notebook & Import -->
+        <div class="notebook-action-row">
+          <div class="new-nb-input-wrap">
+            <input type="text" id="new-notebook-title" class="custom-input" placeholder="New notebook title (e.g. Physics 101, Genetics...)" onkeydown="handleNewNotebookKeydown(event)">
+            <button class="btn btn-primary btn-sm" onclick="handleCreateNotebook()">+ Create Notebook</button>
+          </div>
+          <label class="btn btn-outline btn-sm import-label" title="Import Notebook JSON backup">
+            Import JSON
+            <input type="file" id="import-nb-file" accept=".json" style="display: none;" onchange="handleImportNotebookFile(event)">
+          </label>
+        </div>
+
+        <!-- Notebooks Grid -->
+        <div id="notebooks-grid" class="notebooks-grid">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeNotebooksModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="js/voice.js"></script>
+  <script src="js/drive.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>

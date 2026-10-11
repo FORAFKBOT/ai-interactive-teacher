@@ -15,6 +15,8 @@ ENV/
 # Temporary and upload files (preserve directory with .gitkeep)
 uploads/*
 !uploads/.gitkeep
+notebooks/*
+!notebooks/.gitkeep
 
 # IDE and OS
 .vscode/

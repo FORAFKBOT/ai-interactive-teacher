@@ -47,11 +47,18 @@ This instantly generates a secure, free public HTTPS link (e.g. `https://sage-xy
    - Full support for **Malayalam (മലയാളം), English, Hindi (हिंदी), Hinglish, Tamil (தமிழ்), Telugu (తెలుగు), Bengali (বাংলা), Spanish (Español), French, German, Mandarin, Japanese, Arabic, Russian**, and more.
    - Speaks natively in Malayalam and poses Socratic questions directly in Malayalam script.
 
-4. **Mobile-First & Touch-Optimized UI**
-   - Responsive design with dedicated mobile navigation (`Live Stage`, `Study Desk`, `Curriculum & Dials`).
-   - Sized for mobile viewports, touch targets, and iOS Safari / Android Chrome voice APIs.
+5. **Multiple Independent Notebooks (NotebookLM Style)**
+   - Create and organize **multiple separate notebooks** (e.g., *Physics 101*, *Biochemistry*, *Machine Learning*).
+   - Each notebook maintains its own uploaded documents, extracted curriculum, live conversation history, mastery tracking, and audio preferences.
+   - Instantly switch between notebooks via the top bar dropdown.
 
-4. **Dynamic Pedagogy: Urgency & Importance Dials**
+6. **Google Drive Memory & On-Demand Sync**
+   - Connect your **Google Account** with one click via Google Identity Services.
+   - Automatically provisions a dedicated, isolated folder in your Google Drive: `"Sage AI Teacher - Notebooks"`.
+   - **On-Demand Access**: Only updates and syncs when actively in use, avoiding constant background battery or quota drain.
+   - Also supports 1-click JSON export & import for zero-credential backups.
+
+7. **Dynamic Pedagogy: Urgency & Importance Dials**
    - **Urgency (1 to 5)**:
      - `Level 1 (Deep Dive)`: Patient, exploratory, philosophical, rich analogies, zero rush.
      - `Level 3 (Balanced)`: Methodical, structured classroom pace.
@@ -61,7 +68,7 @@ This instantly generates a secure, free public HTTPS link (e.g. `https://sage-xy
      - `Level 3 (Academic)`: Constructive feedback and standard precision.
      - `Level 5 (Mission-Critical / Defense)`: Ruthless rigor, zero hand-waving, verifies edge cases and proof steps.
 
-5. **The Anti-Drift Guardian (Core Anchor)**
+8. **The Anti-Drift Guardian (Core Anchor)**
    - Strict grounding prevents hallucinations and off-topic wanderings.
    - If a student tries to derail the conversation with random tangents, the teacher politely acknowledges and immediately redirects back to the active learning checkpoint.
    - Live visual mastery bar and checklist tracking each concept from `⚪ Pending` ➔ `🟡 Active` ➔ `🟢 Mastered`.
