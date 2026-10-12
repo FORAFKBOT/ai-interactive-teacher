@@ -11,6 +11,9 @@ Handles:
 import os
 import json
 import re
+import base64
+import urllib.parse
+import struct
 from typing import Dict, Any, List, Optional
 import httpx
 
@@ -205,6 +208,147 @@ Format your response so it sounds wonderful when spoken aloud in live conversati
                 text = data["choices"][0]["message"]["content"]
                 return self._parse_teacher_text(session, text, user_input)
             raise Exception(f"OpenAI API returned {resp.status_code}: {resp.text}")
+
+    async def synthesize_speech(self, text: str, language: str = "English") -> bytes:
+        """
+        Synthesize natural, human-like speech for the AI teacher.
+        Uses Gemini Audio Generation when API key is provided,
+        or Google's high-fidelity neural speech synthesizer for native Malayalam/multilingual pronunciation.
+        """
+        clean_text = re.sub(r"[*#_`~⚡🌱📘🔑❓🤔•]", "", text).strip()
+        clean_text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", clean_text)
+        
+        # 1. Try Gemini Audio Modality if Gemini API key is configured
+        if self.gemini_api_key:
+            try:
+                gemini_audio = await self._gemini_tts(clean_text, language)
+                if gemini_audio and len(gemini_audio) > 500:
+                    return gemini_audio
+            except Exception as e:
+                print(f"Gemini TTS notice: {e}. Using neural speech engine.")
+
+        # 2. Google Neural Multi-lingual Speech Engine (Fluent native Malayalam, Hindi, Tamil, etc.)
+        return await self._google_neural_tts(clean_text, language)
+
+    def _pcm_to_wav(self, pcm_data: bytes, sample_rate: int = 24000, channels: int = 1, bits_per_sample: int = 16) -> bytes:
+        """Wraps raw PCM audio bytes into a standard playable WAV file with header."""
+        byte_rate = sample_rate * channels * (bits_per_sample // 8)
+        block_align = channels * (bits_per_sample // 8)
+        header = struct.pack(
+            '<4sI4s4sIHHIIHH4sI',
+            b'RIFF',
+            36 + len(pcm_data),
+            b'WAVE',
+            b'fmt ',
+            16,
+            1,  # PCM
+            channels,
+            sample_rate,
+            byte_rate,
+            block_align,
+            bits_per_sample,
+            b'data',
+            len(pcm_data)
+        )
+        return header + pcm_data
+
+    async def _gemini_tts(self, text: str, language: str) -> Optional[bytes]:
+        models_to_try = ["gemini-2.0-flash", "gemini-2.5-flash"]
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.gemini_api_key}"
+            payload = {
+                "contents": [{
+                    "role": "user",
+                    "parts": [{"text": f"You are an engaging AI teacher. Read aloud and speak the following text clearly and naturally in {language}:\n\n{text[:600]}"}]
+                }],
+                "generationConfig": {
+                    "responseModalities": ["AUDIO"],
+                    "speechConfig": {
+                        "voiceConfig": {
+                            "prebuiltVoiceConfig": {
+                                "voiceName": "Aoede"
+                            }
+                        }
+                    }
+                }
+            }
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            for part in parts:
+                                if "inlineData" in part:
+                                    mime = part["inlineData"].get("mimeType", "")
+                                    audio_b64 = part["inlineData"].get("data")
+                                    if audio_b64:
+                                        raw_bytes = base64.b64decode(audio_b64)
+                                        if mime.startswith("audio/pcm") or mime == "audio/L16":
+                                            return self._pcm_to_wav(raw_bytes, sample_rate=24000)
+                                        return raw_bytes
+            except Exception as e:
+                print(f"Gemini {model} TTS attempt notice: {e}")
+                continue
+        return None
+
+    async def _google_neural_tts(self, text: str, language: str) -> bytes:
+        lang_code = "en"
+        l = language.lower()
+        if "malayalam" in l or "മലയാളം" in l or "ml" in l:
+            lang_code = "ml"
+        elif "hindi" in l or "hinglish" in l or "hi" in l:
+            lang_code = "hi"
+        elif "tamil" in l or "ta" in l:
+            lang_code = "ta"
+        elif "telugu" in l or "te" in l:
+            lang_code = "te"
+        elif "bengali" in l or "bn" in l:
+            lang_code = "bn"
+        elif "spanish" in l or "es" in l:
+            lang_code = "es"
+        elif "french" in l or "fr" in l:
+            lang_code = "fr"
+        elif "german" in l or "de" in l:
+            lang_code = "de"
+        elif "japanese" in l or "ja" in l:
+            lang_code = "ja"
+        elif "arabic" in l or "ar" in l:
+            lang_code = "ar"
+
+        # Chunk text into ~140 character natural sentence units
+        words = text.split()
+        chunks = []
+        current = []
+        for w in words:
+            current.append(w)
+            if len(" ".join(current)) > 130:
+                chunks.append(" ".join(current))
+                current = []
+        if current:
+            chunks.append(" ".join(current))
+
+        audio_parts = bytearray()
+        async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "Mozilla/5.0"}) as client:
+            for chunk in chunks[:6]:
+                params = urllib.parse.urlencode({
+                    "ie": "UTF-8",
+                    "tl": lang_code,
+                    "client": "tw-ob",
+                    "q": chunk
+                })
+                url = f"https://translate.google.com/translate_tts?{params}"
+                try:
+                    res = await client.get(url)
+                    if res.status_code == 200:
+                        audio_parts.extend(res.content)
+                except Exception as err:
+                    print(f"TTS chunk warning: {err}")
+                    continue
+
+        return bytes(audio_parts)
 
     def _parse_teacher_text(self, session: LearningSession, text: str, user_input: str) -> Dict[str, Any]:
         """Extract evaluation, question, and progress updates from teacher's generated response."""

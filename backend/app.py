@@ -8,7 +8,7 @@ import shutil
 import socket
 import time
 from typing import Optional, Dict, Any, List
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -65,6 +65,11 @@ class PastePayload(BaseModel):
     session_id: Optional[str] = None
     title: str = "Pasted Notes"
     content: str
+
+
+class TTSPayload(BaseModel):
+    text: str
+    language: Optional[str] = "English"
 
 
 @app.post("/api/upload")
@@ -237,6 +242,21 @@ async def chat_turn(payload: ChatPayload):
         "concept_advanced": result.get("concept_advanced", False),
         "current_concept": result.get("current_concept")
     }
+
+
+@app.post("/api/tts")
+async def generate_speech(payload: TTSPayload):
+    """Synthesize natural human-like speech for the teacher using Gemini / Google neural speech."""
+    if not payload.text or not payload.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+    try:
+        audio_bytes = await teacher_engine.synthesize_speech(payload.text, payload.language or "English")
+        if not audio_bytes or len(audio_bytes) < 100:
+            raise HTTPException(status_code=500, detail="Could not synthesize audio.")
+        media_type = "audio/wav" if (audio_bytes and audio_bytes[:4] == b"RIFF") else "audio/mpeg"
+        return Response(content=audio_bytes, media_type=media_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS synthesis error: {str(e)}")
 
 
 @app.get("/api/session")

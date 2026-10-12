@@ -12,7 +12,21 @@ let appState = {
 
 document.addEventListener("DOMContentLoaded", () => {
   setupVoiceCallbacks();
+  setupPushToTalkListeners();
   loadInitialSession();
+
+  // Language select listener
+  const langSelect = document.getElementById("language-select");
+  if (langSelect) {
+    langSelect.addEventListener("change", (e) => {
+      const selected = e.target.value;
+      if (window.voiceCtrl) window.voiceCtrl.setLanguage(selected);
+      if (appState.session) {
+        appState.session.language = selected;
+        API.updatePedagogicalParams({ language: selected });
+      }
+    });
+  }
 });
 
 function setupVoiceCallbacks() {
@@ -23,35 +37,115 @@ function setupVoiceCallbacks() {
 
   // State changes (idle, speaking, listening)
   window.voiceCtrl.onSpeechStateChange = (state) => {
-    orb.className = `live-visualizer-orb ${state}`;
+    if (orb) orb.className = `live-visualizer-orb ${state}`;
     if (state === "speaking") {
-      stateBadge.className = "badge-status status-speaking";
-      stateBadge.innerText = "Sage is Speaking...";
-      interruptBtn.style.display = "inline-flex";
+      if (stateBadge) {
+        stateBadge.className = "badge-status status-speaking";
+        stateBadge.innerText = "Sage is Speaking...";
+      }
+      if (interruptBtn) interruptBtn.style.display = "inline-flex";
     } else if (state === "listening") {
-      stateBadge.className = "badge-status status-listening";
-      stateBadge.innerText = "Listening... Speak your thought";
-      interruptBtn.style.display = "none";
+      if (stateBadge) {
+        stateBadge.className = "badge-status status-listening";
+        stateBadge.innerText = "Listening... Speak your thought";
+      }
+      if (interruptBtn) interruptBtn.style.display = "none";
       if (deskMicBtn) deskMicBtn.classList.add("recording");
     } else {
-      stateBadge.className = "badge-status status-ready";
-      stateBadge.innerText = appState.isLiveActive ? "Awaiting Next Checkpoint" : "Ready to Study";
-      interruptBtn.style.display = "none";
+      if (stateBadge) {
+        stateBadge.className = "badge-status status-ready";
+        stateBadge.innerText = appState.isLiveActive ? "Awaiting Next Checkpoint" : "Ready to Study";
+      }
+      if (interruptBtn) interruptBtn.style.display = "none";
       if (deskMicBtn) deskMicBtn.classList.remove("recording");
     }
   };
 
-  // When student finishes speaking in voice
+  // When student finishes speaking via push-to-talk
   window.voiceCtrl.onUserSpeechResult = (transcript) => {
-    console.log("Captured speech:", transcript);
-    document.getElementById("live-caption-preview").innerText = `You: "${transcript}"`;
-    document.getElementById("chat-input").value = transcript;
-    
-    // Automatically submit if live mode is running
-    if (appState.isLiveActive) {
-      submitUserTurn(transcript);
-    }
+    if (!transcript || !transcript.trim()) return;
+    const cleanSpeech = transcript.trim();
+    console.log("Captured speech turn:", cleanSpeech);
+
+    const caption = document.getElementById("live-caption-preview");
+    if (caption) caption.innerText = `You: "${cleanSpeech}"`;
+
+    const input = document.getElementById("chat-input");
+    if (input) input.value = cleanSpeech;
+
+    // Immediately submit student's spoken answer to teacher
+    submitUserTurn(cleanSpeech);
   };
+}
+
+function setupPushToTalkListeners() {
+  const micBtn = document.getElementById("btn-toggle-mic");
+  const orb = document.getElementById("live-visualizer");
+  const deskMicBtn = document.getElementById("desk-mic-btn");
+
+  const bindHoldEvents = (element) => {
+    if (!element) return;
+
+    // Desktop Mouse Events (Hold to speak, release to send)
+    element.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      window.voiceCtrl.startPushToTalk();
+    });
+
+    element.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      window.voiceCtrl.stopPushToTalk();
+    });
+
+    element.addEventListener("mouseleave", () => {
+      if (window.voiceCtrl.isHoldingPushToTalk) {
+        window.voiceCtrl.stopPushToTalk();
+      }
+    });
+
+    // Mobile & Tablet Touch Events (Hold to speak, release to send)
+    element.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      window.voiceCtrl.startPushToTalk();
+    }, { passive: false });
+
+    element.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      window.voiceCtrl.stopPushToTalk();
+    }, { passive: false });
+
+    element.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      window.voiceCtrl.stopPushToTalk();
+    }, { passive: false });
+  };
+
+  bindHoldEvents(micBtn);
+  bindHoldEvents(orb);
+  bindHoldEvents(deskMicBtn);
+
+  // Desktop Spacebar Hold-to-Talk (Hold Spacebar to speak, release to send)
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && !e.repeat) {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+      if (activeTag !== "input" && activeTag !== "textarea") {
+        e.preventDefault();
+        window.voiceCtrl.startPushToTalk();
+      }
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "Space") {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+      if (activeTag !== "input" && activeTag !== "textarea") {
+        if (window.voiceCtrl.isHoldingPushToTalk) {
+          e.preventDefault();
+          window.voiceCtrl.stopPushToTalk();
+        }
+      }
+    }
+  });
 }
 
 async function loadInitialSession() {
@@ -131,15 +225,12 @@ function toggleLiveSession() {
 function interruptTeacher() {
   window.voiceCtrl.stopSpeaking();
   const caption = document.getElementById("live-caption-preview");
-  if (caption) caption.innerText = "Teacher paused. Speak or type your thought...";
-  window.voiceCtrl.startListening();
+  if (caption) caption.innerText = "Teacher paused. Hold mic to speak or type in Study Desk.";
 }
 
 function toggleMic() {
-  if (window.voiceCtrl.isRecognizing) {
-    window.voiceCtrl.stopListening();
-  } else {
-    window.voiceCtrl.startListening();
+  if (window.voiceCtrl) {
+    window.voiceCtrl.toggleListening();
   }
 }
 
@@ -651,10 +742,10 @@ function updateDriveBanner() {
 
   if (window.driveMgr && window.driveMgr.isSignedIn) {
     if (title) title.innerText = `Connected: ${window.driveMgr.userEmail || "Google Drive"}`;
-    if (desc) desc.innerText = `Folder: "Sage AI Teacher - Notebooks" • Syncs only when in use.`;
+    if (desc) desc.innerText = `Folder: "sagestudyai/notebooks" • Live on-demand sync.`;
   } else {
     if (title) title.innerText = "Google Drive Cloud Memory";
-    if (desc) desc.innerText = `Sync progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.`;
+    if (desc) desc.innerText = `Sync progress in "sagestudyai/notebooks" Drive folder on-demand.`;
   }
 }
 
@@ -780,38 +871,38 @@ function connectGoogleDrive() {
 
 async function handleDriveSyncClick() {
   const syncBtn = document.getElementById("btn-drive-sync");
+  const syncBtnText = document.getElementById("drive-sync-btn-text");
   if (syncBtn) syncBtn.classList.add("syncing");
+  if (syncBtnText) syncBtnText.innerText = "Syncing...";
 
   try {
-    if (!window.driveMgr.isSignedIn && !window.driveMgr.userEmail) {
-      const choice = confirm("Google account is not linked yet.\n\nWould you like to open Cloud Sync settings to link your account?\n(Press Cancel to download a direct JSON backup file immediately instead)");
-      if (choice) {
-        openSettingsModal("google");
-        return;
-      } else {
-        exportActiveNotebook();
-        return;
-      }
+    if (!appState.session || !appState.session.notebook_id) {
+      alert("Please upload a document or open a notebook before syncing.");
+      return;
     }
 
-    if (appState.session && appState.session.notebook_id) {
-      const fullNb = await API.exportNotebook(appState.session.notebook_id);
-      const fileId = await window.driveMgr.syncNotebook(fullNb);
-      if (fileId) {
-        alert(`✓ Synced '${fullNb.title || 'Notebook'}' to Google Drive in folder "Sage AI Teacher - Notebooks"!`);
-        const nbStatusEl = document.getElementById("header-nb-status");
-        if (nbStatusEl) {
-          nbStatusEl.innerText = "☁️ Synced";
-          nbStatusEl.className = "nb-badge synced";
-        }
+    const fullNb = await API.exportNotebook(appState.session.notebook_id);
+    const syncRes = await window.driveMgr.syncNotebook(fullNb);
+
+    if (syncRes && syncRes.success) {
+      const folderPath = syncRes.folderPath || "sagestudyai/notebooks";
+      const fileName = syncRes.fileName || `${fullNb.title || 'Notebook'}.sage.json`;
+
+      const nbStatusEl = document.getElementById("header-nb-status");
+      if (nbStatusEl) {
+        nbStatusEl.innerText = "☁️ Synced";
+        nbStatusEl.className = "nb-badge synced";
       }
+
+      alert(`✓ Successfully synced '${fullNb.title || 'Notebook'}' to Google Drive!\n\nFolder: ${folderPath}\nFile: ${fileName}`);
     } else {
-      alert("Please open or create a notebook before syncing.");
+      alert("Could not complete Drive sync. Please verify your Google account connection in Cloud Settings.");
     }
   } catch (e) {
     alert("Drive sync failed: " + e.message);
   } finally {
     if (syncBtn) syncBtn.classList.remove("syncing");
+    if (syncBtnText) syncBtnText.innerText = "Drive Sync";
   }
 }
 

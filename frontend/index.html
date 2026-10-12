@@ -253,10 +253,14 @@
               <span>Interrupt / Stop Speaking</span>
             </button>
 
-            <button id="btn-toggle-mic" class="btn btn-outline btn-lg" onclick="toggleMic()" title="Hold or Toggle Microphone">
+            <button id="btn-toggle-mic" class="btn btn-outline btn-lg ptt-btn" title="Hold to Speak, Release to Send">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-              <span id="mic-btn-text">Push to Speak</span>
+              <span id="mic-btn-text">Push to Talk</span>
             </button>
+          </div>
+
+          <div class="ptt-hint-bar">
+            <span>🎙️ <strong>Push-to-Talk</strong>: Hold Spacebar or Press & Hold Button while speaking, then release to send</span>
           </div>
 
           <!-- Recent Spoken Exchange Preview -->
@@ -389,9 +393,9 @@
               <div class="setting-group" style="margin-top: 10px;">
                 <label>Connect Google Account</label>
                 <div style="margin-top: 6px;">
-                  <button class="btn btn-primary btn-sm" onclick="connectGoogleDrive()" style="width: 100%; justify-content: center; padding: 10px 14px;">
+                  <a href="https://accounts.google.com/AccountChooser?service=wise&continue=https%3A%2F%2Fdrive.google.com%2Fdrive%2Fu%2F0%2Fmy-drive" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="width: 100%; justify-content: center; padding: 10px 14px; text-decoration: none;" onclick="window.driveMgr && window.driveMgr.signIn()">
                     🔗 Redirect to Google Account Center to Connect Drive
-                  </button>
+                  </a>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 10px;">
                   <input type="email" id="google-email-input" class="custom-input" placeholder="e.g. yourname@gmail.com" style="margin-top: 0;">
@@ -406,7 +410,7 @@
                 <ul class="drive-features-list">
                   <li>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                    Dedicated folder: <code>Sage AI Teacher - Notebooks</code>
+                    Dedicated folder: <code>sagestudyai/notebooks</code>
                   </li>
                   <li>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -492,7 +496,7 @@
             </div>
             <div>
               <strong id="drive-banner-title">Google Drive Cloud Memory</strong>
-              <small id="drive-banner-desc">Syncs progress in a dedicated "Sage AI Teacher - Notebooks" Drive folder on-demand.</small>
+              <small id="drive-banner-desc">Syncs progress in "sagestudyai/notebooks" Drive folder on-demand.</small>
             </div>
           </div>
           <div class="drive-banner-actions">
